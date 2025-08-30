@@ -185,6 +185,19 @@ class MacroEditorApp {
       }
     });
 
+    // Handler pour la capture de position (utilisé par ActionSidebar)
+    ipcMain.handle('start-position-capture', async (event) => {
+      try {
+        // Attendre 1 seconde puis capturer la position RÉELLE de la souris
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        const position = await SimpleActions.getRealMousePosition();
+        return position; // Retourner directement les coordonnées
+      } catch (error) {
+        console.error('Erreur lors de la capture de position:', error);
+        return { x: 0, y: 0 }; // Position par défaut en cas d'erreur
+      }
+    });
+
     // Handler pour démarrer la capture globale de clics
     ipcMain.handle('start-global-mouse-capture', async (event) => {
       try {

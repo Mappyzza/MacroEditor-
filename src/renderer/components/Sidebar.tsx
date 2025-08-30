@@ -93,7 +93,8 @@ const Sidebar: React.FC<SidebarProps> = ({
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          
+
+
           <div className="macro-list">
         {filteredMacros.length === 0 ? (
           <div className="no-macros">

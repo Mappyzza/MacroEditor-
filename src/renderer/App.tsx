@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { MacroProject, Macro, MacroAction } from '../types/macro';
 import Sidebar from './components/Sidebar';
 import MacroEditor from './components/MacroEditor';
-import ActionLibrary from './components/ActionLibrary';
+import ActionSidebar from './components/ActionSidebar';
 import MacroExecutor from './components/MacroExecutor';
 import NewMacroModal from './components/NewMacroModal';
 import KeyboardMenu from './components/KeyboardMenu';
@@ -16,7 +16,8 @@ const App: React.FC = () => {
   const [workingMacro, setWorkingMacro] = useState<Macro | null>(null); // Macro en cours d'édition (non sauvegardée)
   const [isRecording, setIsRecording] = useState(false);
   const [isExecuting, setIsExecuting] = useState(false);
-  const [showActionLibrary, setShowActionLibrary] = useState(false);
+  const [showActionSidebar, setShowActionSidebar] = useState(false);
+  const [selectedActionType, setSelectedActionType] = useState<string>('');
   const [showNewMacroModal, setShowNewMacroModal] = useState(false);
   const [showKeyboardMenu, setShowKeyboardMenu] = useState(false);
   const [executingMacro, setExecutingMacro] = useState<Macro | null>(null);
@@ -157,7 +158,7 @@ const App: React.FC = () => {
     if (!currentProject) return;
     // Fermer tous les autres modals/menus
     setShowKeyboardMenu(false);
-    setShowActionLibrary(false);
+    setShowActionSidebar(false);
     setShowNewMacroModal(true);
   };
 
@@ -411,7 +412,7 @@ const App: React.FC = () => {
 
   const handleOpenKeyboardMenu = () => {
     setShowKeyboardMenu(true);
-    setShowActionLibrary(false); // Fermer la bibliothèque d'actions
+    setShowActionSidebar(false); // Fermer la sidebar d'actions
   };
 
   const handleCloseKeyboardMenu = () => {
@@ -498,7 +499,10 @@ const App: React.FC = () => {
               isExecuting={isExecuting}
               onMacroTest={handleMacroTest}
               onMacroSave={handleMacroSave}
-              onOpenActionLibrary={() => setShowActionLibrary(true)}
+              onOpenActionLibrary={() => {
+                setSelectedActionType('');
+                setShowActionSidebar(true);
+              }}
             />
           ) : null}
         </div>
@@ -506,12 +510,15 @@ const App: React.FC = () => {
       
       
 
-      {/* ActionLibrary avec gestion d'overlay intégrée */}
-      <ActionLibrary
+      {/* ActionSidebar avec gestion d'overlay intégrée */}
+      <ActionSidebar
         onActionAdd={handleActionAdd}
-        onClose={() => setShowActionLibrary(false)}
-        onOpenKeyboardMenu={handleOpenKeyboardMenu}
-        isVisible={showActionLibrary}
+        onClose={() => {
+          setShowActionSidebar(false);
+          setSelectedActionType('');
+        }}
+        isVisible={showActionSidebar}
+        initialActionType={selectedActionType}
       />
 
       <NewMacroModal
