@@ -527,13 +527,14 @@ const App: React.FC = () => {
         onCancel={handleCancelNewMacro}
       />
       
-      {isExecuting && executingMacro && (
+      {/* MacroExecutor désactivé pour éviter qu'il casse la macro en ramenant le focus */}
+      {/* {isExecuting && executingMacro && (
         <MacroExecutor
           macro={executingMacro}
           onComplete={() => setIsExecuting(false)}
           onStop={() => setIsExecuting(false)}
         />
-      )}
+      )} */}
 
       {/* Menu clavier en plein écran */}
       {showKeyboardMenu && (

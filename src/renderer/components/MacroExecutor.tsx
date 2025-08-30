@@ -31,7 +31,7 @@ const MacroExecutor: React.FC<MacroExecutorProps> = ({ macro, onComplete, onStop
           value: action.value,
           delay: action.delay,
           button: (action as any).button || 'left',
-          clickCount: (action as any).clickCount || 1,
+          clickCount: action.type === 'click' ? (action.value as number) || 1 : 1,
         };
 
         // Exécuter l'action réelle via IPC
@@ -83,7 +83,9 @@ const MacroExecutor: React.FC<MacroExecutorProps> = ({ macro, onComplete, onStop
   const getActionDescription = (action: MacroAction) => {
     switch (action.type) {
       case 'click':
-        return `Cliquer ${action.coordinates ? `en (${action.coordinates.x}, ${action.coordinates.y})` : ''}`;
+        const clickCount = action.value as number || 1;
+        const clickType = clickCount === 1 ? 'Clic' : clickCount === 2 ? 'Double-clic' : clickCount === 3 ? 'Triple-clic' : `${clickCount}-clic`;
+        return `${clickType} ${action.coordinates ? `en (${action.coordinates.x}, ${action.coordinates.y})` : ''}`;
       case 'keypress':
         return `Appuyer sur ${action.value}`;
       case 'type':
@@ -108,11 +110,11 @@ const MacroExecutor: React.FC<MacroExecutorProps> = ({ macro, onComplete, onStop
   const currentAction = macro.actions[currentActionIndex];
 
   return (
-    <div className="macro-executor-overlay">
-      <div className="macro-executor">
+    <div className="macro-executor-overlay" style={{ pointerEvents: 'none', zIndex: -1 }}>
+      <div className="macro-executor" style={{ opacity: 0.1, pointerEvents: 'none' }}>
         <div className="executor-header">
           <h3>Exécution de la macro</h3>
-          <button className="btn btn-sm btn-danger" onClick={handleStop}>
+          <button className="btn btn-sm btn-danger" onClick={handleStop} style={{ pointerEvents: 'auto' }}>
             <span className="icon">⏹</span>
             Arrêter
           </button>

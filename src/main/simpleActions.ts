@@ -50,6 +50,7 @@ export class SimpleActions {
 
     const { x, y } = coordinates;
     
+    console.log(`🎯 EXÉCUTION DIRECTE - Payload reçu:`, payload);
     console.log(`🎯 EXÉCUTION DIRECTE - Clic ${button} ${clickCount}x en (${x}, ${y})`);
 
     try {
@@ -64,8 +65,7 @@ Add-Type -AssemblyName System.Drawing
 # Positionner le curseur AVANT de cliquer
 [System.Windows.Forms.Cursor]::Position = New-Object System.Drawing.Point(${x}, ${y})
 
-# Attendre que le curseur soit bien positionné
-Start-Sleep -Milliseconds 10
+# Positionnement instantané du curseur
 
 Add-Type -TypeDefinition @"
 using System;
@@ -78,11 +78,11 @@ public class Win32 {
 
 `;
       
-      // Ajouter tous les clics avec délai minimal entre eux
+      // Ajouter tous les clics avec délai minimal pour distinguer les clics
       for (let i = 0; i < clickCount; i++) {
-        psScript += `[Win32]::mouse_event(${leftDown}, 0, 0, 0, 0); Start-Sleep -Milliseconds 5; [Win32]::mouse_event(${leftUp}, 0, 0, 0, 0)\n`;
+        psScript += `[Win32]::mouse_event(${leftDown}, 0, 0, 0, 0); Start-Sleep -Milliseconds 1; [Win32]::mouse_event(${leftUp}, 0, 0, 0, 0)\n`;
         if (i < clickCount - 1) {
-          psScript += `Start-Sleep -Milliseconds 50\n`; // Délai minimal entre clics
+          psScript += `Start-Sleep -Milliseconds 2\n`; // Délai minimal de 2ms entre clics pour distinguer
         }
       }
       
@@ -107,18 +107,13 @@ public class Win32 {
       try {
         const nircmdPath = path.join(__dirname, '../../tools/nircmd.exe');
         
-        // Positionner le curseur AVANT de cliquer
+        // Positionner le curseur et exécuter les clics INSTANTANÉMENT
         await execAsync(`"${nircmdPath}" setcursor ${x} ${y}`);
-        
-        // Attendre que le curseur soit bien positionné
-        await new Promise(resolve => setTimeout(resolve, 10));
-        
-        // Exécuter les clics
         const clickType = button === 'left' ? 'left' : 'right';
         for (let i = 0; i < clickCount; i++) {
           await execAsync(`"${nircmdPath}" sendmouse ${clickType} click`);
           if (i < clickCount - 1) {
-            await new Promise(resolve => setTimeout(resolve, 50)); // Délai minimal
+            await new Promise(resolve => setTimeout(resolve, 2)); // Délai minimal de 2ms entre clics
           }
         }
         
@@ -130,6 +125,98 @@ public class Win32 {
         throw new Error(`Impossible d'exécuter le clic ${button} ${clickCount}x en (${x}, ${y}): ${nircmdError instanceof Error ? nircmdError.message : String(nircmdError)}`);
       }
     }
+  }
+
+  // Fonction pour mapper les codes de touches vers les formats appropriés pour chaque méthode
+  private static mapKeyForMethod(key: string, method: 'nircmd' | 'autohotkey' | 'powershell' | 'python'): string {
+    // Mapping des touches spéciales vers les formats appropriés
+    const keyMappings: { [key: string]: { [method: string]: string } } = {
+      '{ENTER}': {
+        'nircmd': 'enter',
+        'autohotkey': '{Enter}',
+        'powershell': '{ENTER}',
+        'python': 'enter'
+      },
+      '{BACKSPACE}': {
+        'nircmd': 'backspace',
+        'autohotkey': '{Backspace}',
+        'powershell': '{BACKSPACE}',
+        'python': 'backspace'
+      },
+      '{TAB}': {
+        'nircmd': 'tab',
+        'autohotkey': '{Tab}',
+        'powershell': '{TAB}',
+        'python': 'tab'
+      },
+      '{ESC}': {
+        'nircmd': 'escape',
+        'autohotkey': '{Esc}',
+        'powershell': '{ESC}',
+        'python': 'esc'
+      },
+      '{CAPSLOCK}': {
+        'nircmd': 'capslock',
+        'autohotkey': '{CapsLock}',
+        'powershell': '{CAPSLOCK}',
+        'python': 'capslock'
+      },
+      '{SHIFT}': {
+        'nircmd': 'shift',
+        'autohotkey': '{Shift}',
+        'powershell': '{SHIFT}',
+        'python': 'shift'
+      },
+      '{CTRL}': {
+        'nircmd': 'ctrl',
+        'autohotkey': '{Ctrl}',
+        'powershell': '{CTRL}',
+        'python': 'ctrl'
+      },
+      '{ALT}': {
+        'nircmd': 'alt',
+        'autohotkey': '{Alt}',
+        'powershell': '{ALT}',
+        'python': 'alt'
+      },
+      '{LWIN}': {
+        'nircmd': 'win',
+        'autohotkey': '{LWin}',
+        'powershell': '{LWIN}',
+        'python': 'win'
+      },
+      '{APPS}': {
+        'nircmd': 'apps',
+        'autohotkey': '{AppsKey}',
+        'powershell': '{APPS}',
+        'python': 'menu'
+      }
+    };
+
+    // Si c'est une touche spéciale mappée, retourner le format approprié
+    if (keyMappings[key] && keyMappings[key][method]) {
+      return keyMappings[key][method];
+    }
+
+    // Si c'est une combinaison avec des modificateurs (^, !, +, #)
+    if (key.includes('^') || key.includes('!') || key.includes('+') || key.includes('#')) {
+      let mappedKey = key;
+      
+      // Mapper les modificateurs pour AutoHotkey
+      if (method === 'autohotkey') {
+        mappedKey = key.replace(/\^/g, '^').replace(/!/g, '!').replace(/\+/g, '+').replace(/#/g, '#');
+      }
+      // Mapper les modificateurs pour PowerShell
+      else if (method === 'powershell') {
+        mappedKey = key.replace(/\^/g, '^').replace(/!/g, '%').replace(/\+/g, '+').replace(/#/g, '#');
+      }
+      // Pour nircmd et python, on garde le format tel quel
+      
+      return mappedKey;
+    }
+
+    // Pour les touches normales, retourner tel quel
+    return key;
   }
 
   static async executeKeypress(payload: ActionPayload): Promise<void> {
@@ -145,7 +232,8 @@ public class Win32 {
              // MÉTHODE 1: Utiliser nircmd
        try {
          const nircmdPath = path.join(__dirname, '../../tools/nircmd.exe');
-        const nircmdCommand = `"${nircmdPath}" sendkeypress ${value}`;
+        const mappedKey = this.mapKeyForMethod(value, 'nircmd');
+        const nircmdCommand = `"${nircmdPath}" sendkeypress ${mappedKey}`;
         console.log(`Tentative nircmd: ${nircmdCommand}`);
         const { stdout, stderr } = await execAsync(nircmdCommand);
         console.log('✅ SUCCÈS avec nircmd pour touche');
@@ -156,7 +244,8 @@ public class Win32 {
 
              // MÉTHODE 2: AutoHotkey
        try {
-         const ahkScript = `Send, ${value}`;
+         const mappedKey = this.mapKeyForMethod(value, 'autohotkey');
+         const ahkScript = `Send, ${mappedKey}`;
          const ahkFile = path.join(os.tmpdir(), `key-${Date.now()}.ahk`);
         
         await fs.promises.writeFile(ahkFile, ahkScript);
@@ -178,10 +267,11 @@ public class Win32 {
 
              // MÉTHODE 3: PowerShell SendKeys
        try {
+         const mappedKey = this.mapKeyForMethod(value, 'powershell');
          const script = `
  Add-Type -AssemblyName System.Windows.Forms
  Start-Sleep -Milliseconds 1
- [System.Windows.Forms.SendKeys]::SendWait("${value}")
+ [System.Windows.Forms.SendKeys]::SendWait("${mappedKey}")
  `;
 
          const tempFile = path.join(os.tmpdir(), `keypress-${Date.now()}.ps1`);
@@ -204,9 +294,10 @@ public class Win32 {
 
              // MÉTHODE 4: Python pyautogui
        try {
+         const mappedKey = this.mapKeyForMethod(value, 'python');
          const pythonScript = `
  import pyautogui
- pyautogui.press('${value}')
+ pyautogui.press('${mappedKey}')
  `;
          
          const pyFile = path.join(os.tmpdir(), `key-${Date.now()}.py`);
@@ -243,110 +334,74 @@ public class Win32 {
 
     console.log(`📝 EXÉCUTION DIRECTE - Saisie: "${value}"`);
 
+    // Utiliser une seule méthode pour éviter la duplication
+    // Priorité: PowerShell SendKeys (le plus fiable pour la saisie de texte)
     try {
-             // MÉTHODE 1: nircmd pour saisie de texte (échappement des caractères spéciaux)
-       try {
-         const nircmdPath = path.join(__dirname, '../../tools/nircmd.exe');
-        // Échapper les caractères spéciaux pour nircmd
-        const escapedValue = value.replace(/"/g, '""');
-        const nircmdCommand = `"${nircmdPath}" sendkeys "${escapedValue}"`;
-        console.log(`Tentative nircmd pour texte: ${nircmdCommand}`);
-        const { stdout, stderr } = await execAsync(nircmdCommand);
-        console.log('✅ SUCCÈS avec nircmd pour saisie');
-        return;
-      } catch (nircmdError) {
-        console.log('❌ nircmd échoué pour saisie, tentative AutoHotkey...', nircmdError instanceof Error ? nircmdError.message : String(nircmdError));
-      }
+      // Échapper les caractères spéciaux pour PowerShell
+      const escapedValue = value
+        .replace(/\\/g, '\\\\')
+        .replace(/"/g, '""')
+        .replace(/\r/g, '')
+        .replace(/\n/g, '{ENTER}');
+      
+      const script = `
+Add-Type -AssemblyName System.Windows.Forms
+[System.Windows.Forms.SendKeys]::SendWait("${escapedValue}")
+`;
 
-             // MÉTHODE 2: AutoHotkey pour saisie (mode texte brut)
-       try {
-         // Utiliser SendRaw pour éviter l'interprétation des caractères spéciaux
-         const ahkScript = `SendRaw, ${value}`;
-         const ahkFile = path.join(os.tmpdir(), `type-${Date.now()}.ahk`);
-        
-        await fs.promises.writeFile(ahkFile, ahkScript, 'utf8');
-        
-        console.log(`Tentative AutoHotkey pour saisie: ${ahkFile}`);
-        const { stdout, stderr } = await execAsync(`autohotkey "${ahkFile}"`);
-        
-        try {
-          await fs.promises.unlink(ahkFile);
-        } catch (cleanupError) {
-          // Ignorer
-        }
-        
-        console.log('✅ SUCCÈS avec AutoHotkey pour saisie');
-        return;
-      } catch (ahkError) {
-        console.log('❌ AutoHotkey échoué pour saisie, tentative PowerShell...');
-      }
-
-             // MÉTHODE 3: PowerShell SendKeys pour saisie (échappement sécurisé)
-       try {
-         // Échapper les caractères spéciaux pour PowerShell
-         const escapedValue = value
-           .replace(/\\/g, '\\\\')
-           .replace(/"/g, '""')
-           .replace(/\r/g, '')
-           .replace(/\n/g, '{ENTER}');
-         
-         const script = `
- Add-Type -AssemblyName System.Windows.Forms
- Start-Sleep -Milliseconds 1
- [System.Windows.Forms.SendKeys]::SendWait("${escapedValue}")
- `;
-
-         const tempFile = path.join(os.tmpdir(), `type-${Date.now()}.ps1`);
-        
-        await fs.promises.writeFile(tempFile, script, 'utf8');
-        
-        const { stdout, stderr } = await execAsync(`powershell -ExecutionPolicy Bypass -File "${tempFile}"`);
-        
-        try {
-          await fs.promises.unlink(tempFile);
-        } catch (cleanupError) {
-          // Ignorer
-        }
-        
-        console.log(`✅ SUCCÈS avec PowerShell pour saisie "${value}"`);
-        return;
-      } catch (psError) {
-        console.log('❌ PowerShell échoué pour saisie, tentative Python...');
-      }
-
-             // MÉTHODE 4: Python pyautogui pour saisie
-       try {
-         // Échapper les caractères spéciaux pour Python
-         const escapedValue = value.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-         
-         const pythonScript = `
- # -*- coding: utf-8 -*-
- import pyautogui
- pyautogui.write('${escapedValue}')
- `;
-         
-         const pyFile = path.join(os.tmpdir(), `type-${Date.now()}.py`);
-        
-        await fs.promises.writeFile(pyFile, pythonScript, 'utf8');
-        
-        console.log(`Tentative Python pour saisie: ${pyFile}`);
-        const { stdout, stderr } = await execAsync(`python "${pyFile}"`);
-        
-        try {
-          await fs.promises.unlink(pyFile);
-        } catch (cleanupError) {
-          // Ignorer
-        }
-        
-        console.log('✅ SUCCÈS avec Python pour saisie');
-        return;
-      } catch (pyError) {
-        throw new Error(`Toutes les méthodes ont échoué pour la saisie: ${value}`);
+      const tempFile = path.join(os.tmpdir(), `type-${Date.now()}.ps1`);
+     
+      await fs.promises.writeFile(tempFile, script, 'utf8');
+      
+      const { stdout, stderr } = await execAsync(`powershell -ExecutionPolicy Bypass -File "${tempFile}"`);
+      
+      try {
+        await fs.promises.unlink(tempFile);
+      } catch (cleanupError) {
+        // Ignorer
       }
       
-    } catch (error) {
-      console.error('❌ ÉCHEC TOTAL pour saisie:', error);
-      throw new Error(`Erreur saisie: ${error instanceof Error ? error.message : String(error)}`);
+      console.log(`✅ SUCCÈS avec PowerShell pour saisie "${value}"`);
+      return;
+    } catch (psError) {
+      console.log('❌ PowerShell échoué pour saisie, tentative nircmd...');
+    }
+
+    // Méthode de fallback: nircmd
+    try {
+      const nircmdPath = path.join(__dirname, '../../tools/nircmd.exe');
+      // Échapper les caractères spéciaux pour nircmd
+      const escapedValue = value.replace(/"/g, '""');
+      const nircmdCommand = `"${nircmdPath}" sendkeys "${escapedValue}"`;
+      console.log(`Tentative nircmd pour texte: ${nircmdCommand}`);
+      const { stdout, stderr } = await execAsync(nircmdCommand);
+      console.log('✅ SUCCÈS avec nircmd pour saisie');
+      return;
+    } catch (nircmdError) {
+      console.log('❌ nircmd échoué pour saisie, tentative AutoHotkey...', nircmdError instanceof Error ? nircmdError.message : String(nircmdError));
+    }
+
+    // Dernière méthode de fallback: AutoHotkey
+    try {
+      // Utiliser SendRaw pour éviter l'interprétation des caractères spéciaux
+      const ahkScript = `SendRaw, ${value}`;
+      const ahkFile = path.join(os.tmpdir(), `type-${Date.now()}.ahk`);
+     
+      await fs.promises.writeFile(ahkFile, ahkScript, 'utf8');
+      
+      console.log(`Tentative AutoHotkey pour saisie: ${ahkFile}`);
+      const { stdout, stderr } = await execAsync(`autohotkey "${ahkFile}"`);
+      
+      try {
+        await fs.promises.unlink(ahkFile);
+      } catch (cleanupError) {
+        // Ignorer
+      }
+      
+      console.log('✅ SUCCÈS avec AutoHotkey pour saisie');
+      return;
+    } catch (ahkError) {
+      throw new Error(`Toutes les méthodes ont échoué pour la saisie: ${value}`);
     }
   }
 
@@ -372,7 +427,6 @@ public class Win32 {
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 [System.Windows.Forms.Cursor]::Position = New-Object System.Drawing.Point(${x}, ${y})
-Start-Sleep -Milliseconds 5
 `;
 
              // Utiliser un fichier temporaire pour éviter les problèmes d'échappement

@@ -368,7 +368,18 @@ class MacroEditorApp {
         console.log(`🔄 Action ${i + 1}/${macroData.actions.length}: ${action.type}`);
 
         try {
-          await SimpleActions.executeAction(action);
+          // Convertir l'action MacroAction en ActionPayload
+          const actionPayload = {
+            type: action.type,
+            coordinates: action.coordinates,
+            value: action.value,
+            delay: action.delay,
+            button: (action as any).button || 'left',
+            clickCount: action.type === 'click' ? (action.value as number) || 1 : 1,
+          };
+          
+          console.log(`🔍 Action payload:`, actionPayload);
+          await SimpleActions.executeAction(actionPayload);
           console.log(`✅ Action ${i + 1} terminée avec succès`);
         } catch (actionError) {
           console.error(`❌ Erreur action ${i + 1}:`, actionError);

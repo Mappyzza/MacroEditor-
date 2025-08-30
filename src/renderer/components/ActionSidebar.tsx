@@ -19,9 +19,9 @@ interface MouseClickConfig {
 
 interface KeyboardConfig {
   actionType: 'keypress' | 'type' | '';
-  key?: string;
-  text?: string;
-  modifiers?: string[];
+  key: string;
+  text: string;
+  modifiers: string[];
 }
 
 interface SystemConfig {
@@ -41,9 +41,9 @@ const ActionSidebar: React.FC<ActionSidebarProps> = ({ onActionAdd, onClose, isV
   });
   const [keyboardConfig, setKeyboardConfig] = useState<KeyboardConfig>({
     actionType: '',
+    modifiers: [],
     key: '',
-    text: '',
-    modifiers: []
+    text: ''
   });
   const [systemConfig, setSystemConfig] = useState<SystemConfig>({
     actionType: '',
@@ -53,6 +53,9 @@ const ActionSidebar: React.FC<ActionSidebarProps> = ({ onActionAdd, onClose, isV
     amount: 3
   });
   const [isCapturingPosition, setIsCapturingPosition] = useState(false);
+
+  const [showKeyboardMenu, setShowKeyboardMenu] = useState(false);
+  const [keyboardMenuType, setKeyboardMenuType] = useState<'text' | 'virtual'>('text');
 
   // Gérer la capture d'écran/position
   const handlePositionCapture = async (): Promise<{ x: number; y: number } | null> => {
@@ -117,9 +120,9 @@ const ActionSidebar: React.FC<ActionSidebarProps> = ({ onActionAdd, onClose, isV
   const resetKeyboardConfig = () => {
     setKeyboardConfig({
       actionType: '',
+      modifiers: [],
       key: '',
-      text: '',
-      modifiers: []
+      text: ''
     });
   };
 
@@ -133,41 +136,110 @@ const ActionSidebar: React.FC<ActionSidebarProps> = ({ onActionAdd, onClose, isV
     });
   };
 
-  const handleAddKeyboardAction = () => {
-    if (!keyboardConfig.actionType) {
-      alert('Veuillez sélectionner un type d\'action clavier');
-      return;
-    }
+  // Fonction pour mapper les noms des touches spéciales vers leurs codes appropriés
+  const mapSpecialKey = (keyName: string): string => {
+    const keyMap: { [key: string]: string } = {
+      'Enter': '{ENTER}',
+      'Backspace': '{BACKSPACE}',
+      'Tab': '{TAB}',
+      'Space': ' ',
+      'Esc': '{ESC}',
+      'Escape': '{ESC}',
+      'CapsLock': '{CAPSLOCK}',
+      'Shift': '{SHIFT}',
+      'Ctrl': '{CTRL}',
+      'Alt': '{ALT}',
+      'Win': '{LWIN}',
+      'Menu': '{APPS}',
+      'F1': '{F1}',
+      'F2': '{F2}',
+      'F3': '{F3}',
+      'F4': '{F4}',
+      'F5': '{F5}',
+      'F6': '{F6}',
+      'F7': '{F7}',
+      'F8': '{F8}',
+      'F9': '{F9}',
+      'F10': '{F10}',
+      'F11': '{F11}',
+      'F12': '{F12}',
+      '[': '[',
+      ']': ']',
+      '\\': '\\',
+      ';': ';',
+      "'": "'",
+      ',': ',',
+      '.': '.',
+      '/': '/',
+      '`': '`',
+      '-': '-',
+      '=': '='
+    };
+    
+    return keyMap[keyName] || keyName;
+  };
 
+  const handleAddKeyboardAction = () => {
     let actionType: ActionType;
     let value: string | number = '';
     let description = '';
 
-    if (keyboardConfig.actionType === 'keypress') {
-      if (!keyboardConfig.key) {
-        alert('Veuillez spécifier une touche');
-        return;
-      }
-      actionType = 'keypress';
-      value = keyboardConfig.key;
-      description = `Appui sur ${keyboardConfig.key}`;
-      if (keyboardConfig.modifiers && keyboardConfig.modifiers.length > 0) {
-        description = `${keyboardConfig.modifiers.join('+')}+${keyboardConfig.key}`;
-      }
-    } else {
-      if (!keyboardConfig.text) {
-        alert('Veuillez saisir le texte à écrire');
+    if (keyboardMenuType === 'text') {
+      // Mode saisie de texte
+      if (!keyboardConfig.text.trim()) {
+        alert('Veuillez saisir du texte');
         return;
       }
       actionType = 'type';
       value = keyboardConfig.text;
       description = `Saisie: "${keyboardConfig.text}"`;
+    } else {
+      // Mode clavier virtuel
+      if (keyboardConfig.modifiers.length === 0) {
+        alert('Veuillez sélectionner au moins une touche');
+        return;
+      }
+      actionType = 'keypress';
+      
+      // Construire la combinaison de touches
+      const keysArray = keyboardConfig.modifiers;
+      let combinationString = '';
+      
+      // Séparer les modificateurs des autres touches
+      const modifiers = keysArray.filter(key => ['Ctrl', 'Alt', 'Shift', 'Win'].includes(key));
+      const otherKeys = keysArray.filter(key => !['Ctrl', 'Alt', 'Shift', 'Win'].includes(key));
+      
+      if (keysArray.length === 1) {
+        // Une seule touche - mapper la touche spéciale
+        const key = keysArray[0];
+        combinationString = mapSpecialKey(key);
+      } else {
+        // Combinaison de touches
+        if (modifiers.length > 0 && otherKeys.length > 0) {
+          // Format: Ctrl+A, Alt+F4, etc.
+          let modifierPrefix = '';
+          if (modifiers.includes('Ctrl')) modifierPrefix += '^';
+          if (modifiers.includes('Alt')) modifierPrefix += '!';
+          if (modifiers.includes('Shift')) modifierPrefix += '+';
+          if (modifiers.includes('Win')) modifierPrefix += '#';
+          
+          // Prendre la première touche non-modificateur et la mapper
+          const mainKey = otherKeys[0];
+          combinationString = modifierPrefix + mapSpecialKey(mainKey);
+        } else {
+          // Pas de modificateurs, juste des touches multiples
+          combinationString = keysArray.map(key => mapSpecialKey(key)).join('+');
+        }
+      }
+      
+      value = combinationString;
+      description = `Combinaison: ${keysArray.join(' + ')}`;
     }
 
     const action: MacroAction = {
       id: Date.now().toString(),
       type: actionType,
-      target: keyboardConfig.modifiers?.join('+'),
+      target: keyboardConfig.modifiers.join('+'),
       value: value,
       delay: 0,
       description: description
@@ -237,6 +309,15 @@ const ActionSidebar: React.FC<ActionSidebarProps> = ({ onActionAdd, onClose, isV
         onClose();
       }
     }
+  };
+
+  const handleOpenKeyboardMenu = (type: 'text' | 'virtual') => {
+    setKeyboardMenuType(type);
+    setShowKeyboardMenu(true);
+  };
+
+  const handleCloseKeyboardMenu = () => {
+    setShowKeyboardMenu(false);
   };
 
   useEffect(() => {
@@ -456,91 +537,30 @@ const ActionSidebar: React.FC<ActionSidebarProps> = ({ onActionAdd, onClose, isV
 
               {selectedAction === 'keyboard' && (
                 <div className="keyboard-config">
-                  {/* Type d'action clavier */}
-                  <div className="config-section">
-                    <h5>Type d'action</h5>
-                    <div className="button-group">
+                  <h4>Configuration des touches</h4>
+                  
+                  <div className="keyboard-options">
+                    <div className="keyboard-option">
+                      <h5>Saisie de texte</h5>
+                      <p>Entrer du texte à taper automatiquement</p>
                       <button 
-                        className={`config-btn ${keyboardConfig.actionType === 'keypress' ? 'active' : ''}`}
-                        onClick={() => setKeyboardConfig(prev => ({ ...prev, actionType: 'keypress' }))}
+                        className="config-btn"
+                        onClick={() => handleOpenKeyboardMenu('text')}
                       >
-                        Appui sur touche
-                      </button>
-                      <button 
-                        className={`config-btn ${keyboardConfig.actionType === 'type' ? 'active' : ''}`}
-                        onClick={() => setKeyboardConfig(prev => ({ ...prev, actionType: 'type' }))}
-                      >
-                        Saisir du texte
+                        Ouvrir l'éditeur de texte
                       </button>
                     </div>
-                  </div>
-
-                  {keyboardConfig.actionType === 'keypress' && (
-                    <>
-                      {/* Modificateurs */}
-                      <div className="config-section">
-                        <h5>Modificateurs (optionnel)</h5>
-                        <div className="modifier-group">
-                          {['Ctrl', 'Alt', 'Shift', 'Win'].map(modifier => (
-                            <label key={modifier} className="modifier-checkbox">
-                              <input
-                                type="checkbox"
-                                checked={keyboardConfig.modifiers?.includes(modifier) || false}
-                                onChange={(e) => {
-                                  const modifiers = [...(keyboardConfig.modifiers || [])];
-                                  if (e.target.checked) {
-                                    modifiers.push(modifier);
-                                  } else {
-                                    const index = modifiers.indexOf(modifier);
-                                    if (index > -1) modifiers.splice(index, 1);
-                                  }
-                                  setKeyboardConfig(prev => ({ ...prev, modifiers }));
-                                }}
-                              />
-                              {modifier}
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Touche */}
-                      <div className="config-section">
-                        <h5>Touche</h5>
-                        <input
-                          type="text"
-                          className="form-input"
-                          placeholder="Ex: Enter, Space, F1, a, 1..."
-                          value={keyboardConfig.key || ''}
-                          onChange={(e) => setKeyboardConfig(prev => ({ ...prev, key: e.target.value }))}
-                        />
-                      </div>
-                    </>
-                  )}
-
-                  {keyboardConfig.actionType === 'type' && (
-                    <div className="config-section">
-                      <h5>Texte à saisir</h5>
-                      <textarea
-                        className="form-textarea"
-                        placeholder="Tapez le texte à saisir..."
-                        value={keyboardConfig.text || ''}
-                        onChange={(e) => setKeyboardConfig(prev => ({ ...prev, text: e.target.value }))}
-                        rows={3}
-                      />
+                    
+                    <div className="keyboard-option">
+                      <h5>Clavier virtuel</h5>
+                      <p>Sélectionner des touches et combinaisons</p>
+                      <button 
+                        className="config-btn"
+                        onClick={() => handleOpenKeyboardMenu('virtual')}
+                      >
+                        Ouvrir le clavier virtuel
+                      </button>
                     </div>
-                  )}
-
-                  {/* Bouton d'ajout */}
-                  <div className="config-section">
-                    <button 
-                      className="add-action-btn"
-                      onClick={handleAddKeyboardAction}
-                      disabled={!keyboardConfig.actionType || 
-                        (keyboardConfig.actionType === 'keypress' && !keyboardConfig.key) ||
-                        (keyboardConfig.actionType === 'type' && !keyboardConfig.text)}
-                    >
-                      + Ajouter cette action
-                    </button>
                   </div>
                 </div>
               )}
@@ -684,6 +704,128 @@ const ActionSidebar: React.FC<ActionSidebarProps> = ({ onActionAdd, onClose, isV
             </div>
           </div>
         </>
+      )}
+
+      {/* Modal du clavier virtuel */}
+      {showKeyboardMenu && (
+        <div className="keyboard-modal-overlay" onClick={handleCloseKeyboardMenu}>
+          <div className="keyboard-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="keyboard-modal-header">
+              <h3>
+                {keyboardMenuType === 'text' ? 'Saisie de texte' : 'Clavier virtuel'}
+              </h3>
+              <button className="close-btn" onClick={handleCloseKeyboardMenu}>✕</button>
+            </div>
+            
+            <div className="keyboard-modal-content">
+              {keyboardMenuType === 'text' ? (
+                <div className="text-input-section">
+                  <h4>Entrez le texte à saisir :</h4>
+                  <textarea
+                    className="text-input"
+                    placeholder="Tapez votre texte ici..."
+                    rows={6}
+                    value={keyboardConfig.text}
+                    onChange={(e) => setKeyboardConfig(prev => ({ ...prev, text: e.target.value }))}
+                  />
+                  <div className="keyboard-modal-actions">
+                    <button 
+                      className="btn btn-secondary"
+                      onClick={() => setKeyboardConfig(prev => ({ ...prev, text: '' }))}
+                    >
+                      Effacer
+                    </button>
+                    <button 
+                      className="btn btn-primary"
+                      onClick={() => {
+                        if (keyboardConfig.text.trim()) {
+                          handleAddKeyboardAction();
+                          handleCloseKeyboardMenu();
+                        }
+                      }}
+                      disabled={!keyboardConfig.text.trim()}
+                    >
+                      Ajouter l'action
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="virtual-keyboard-section">
+                  <h4>Clavier virtuel miniature</h4>
+                  <p className="instruction">Cliquez sur les touches que vous voulez actionner simultanément :</p>
+                  
+                  <div className="virtual-keyboard">
+                    {[
+                      ['Esc', 'F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7', 'F8', 'F9', 'F10', 'F11', 'F12'],
+                      ['`', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', 'Backspace'],
+                      ['Tab', 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '[', ']', '\\'],
+                      ['CapsLock', 'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ';', "'", 'Enter'],
+                      ['Shift', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', ',', '.', '/', 'Shift'],
+                      ['Ctrl', 'Win', 'Alt', 'Space', 'Alt', 'Win', 'Menu', 'Ctrl']
+                    ].map((row, rowIndex) => (
+                      <div key={rowIndex} className="keyboard-row">
+                        {row.map((key) => (
+                          <button
+                            key={key}
+                            className={`virtual-key ${keyboardConfig.modifiers.includes(key) ? 'selected' : ''} ${
+                              ['Shift', 'Ctrl', 'Alt', 'Win'].includes(key) ? 'modifier-key' : ''
+                            } ${['Space'].includes(key) ? 'space-key' : ''} ${
+                              ['Enter', 'Backspace', 'Tab'].includes(key) ? 'special-key' : ''
+                            } ${key.startsWith('F') && key.length <= 3 ? 'function-key' : ''}`}
+                            onClick={() => {
+                              const newModifiers = keyboardConfig.modifiers.includes(key)
+                                ? keyboardConfig.modifiers.filter(k => k !== key)
+                                : [...keyboardConfig.modifiers, key];
+                              setKeyboardConfig(prev => ({ ...prev, modifiers: newModifiers }));
+                            }}
+                            title={`${keyboardConfig.modifiers.includes(key) ? 'Désélectionner' : 'Sélectionner'} ${key}`}
+                          >
+                            {key === 'Space' ? '⎵' : key}
+                          </button>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+
+                  {keyboardConfig.modifiers.length > 0 && (
+                    <div className="selected-keys-preview">
+                      <h5>Touches sélectionnées :</h5>
+                      <div className="selected-keys-list">
+                        {keyboardConfig.modifiers.map((key) => (
+                          <span key={key} className="selected-key-tag">
+                            {key}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="keyboard-modal-actions">
+                    <button 
+                      className="btn btn-secondary"
+                      onClick={() => setKeyboardConfig(prev => ({ ...prev, modifiers: [] }))}
+                      disabled={keyboardConfig.modifiers.length === 0}
+                    >
+                      Effacer sélection
+                    </button>
+                    <button 
+                      className="btn btn-primary"
+                      onClick={() => {
+                        if (keyboardConfig.modifiers.length > 0) {
+                          handleAddKeyboardAction();
+                          handleCloseKeyboardMenu();
+                        }
+                      }}
+                      disabled={keyboardConfig.modifiers.length === 0}
+                    >
+                      Ajouter la combinaison
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </>
   );

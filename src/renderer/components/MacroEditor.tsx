@@ -102,7 +102,9 @@ const MacroEditor: React.FC<MacroEditorProps> = ({
   const getActionDescription = (action: MacroAction) => {
     switch (action.type) {
       case 'click':
-        return `Cliquer ${action.coordinates ? `en (${action.coordinates.x}, ${action.coordinates.y})` : ''}`;
+        const clickCount = action.value as number || 1;
+        const clickType = clickCount === 1 ? 'Clic' : clickCount === 2 ? 'Double-clic' : clickCount === 3 ? 'Triple-clic' : `${clickCount}-clic`;
+        return `${clickType} ${action.coordinates ? `en (${action.coordinates.x}, ${action.coordinates.y})` : ''}`;
       case 'keypress':
         return `Appuyer sur ${action.value}`;
       case 'type':
