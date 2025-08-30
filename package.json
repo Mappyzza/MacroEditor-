@@ -1,0 +1,45 @@
+{
+  "name": "macro-editor",
+  "version": "1.0.0",
+  "description": "Éditeur de macro moderne avec interface graphique",
+  "main": "dist/main.js",
+  "homepage": "./",
+  "scripts": {
+    "build-main": "tsc src/main/main.ts --outDir dist --target es2020 --module commonjs --moduleResolution node --esModuleInterop --allowSyntheticDefaultImports --skipLibCheck",
+    "build-renderer": "webpack --mode development",
+    "build-dev": "npm run build-main && npm run build-renderer",
+    "build": "npm run build-main && webpack --mode production",
+    "dev": "webpack serve --mode development",
+    "electron": "electron .",
+    "electron-dev": "npm run build-dev && electron .",
+    "package": "npm run build && electron-builder",
+    "start": "npm run build && npm run electron"
+  },
+  "keywords": [
+    "macro",
+    "automation",
+    "editor",
+    "desktop"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "css-loader": "^7.1.2",
+    "html-webpack-plugin": "^5.6.3",
+    "style-loader": "^4.0.0",
+    "ts-loader": "^9.5.1",
+    "typescript": "^5.7.3",
+    "webpack": "^5.97.1",
+    "webpack-cli": "^5.1.4",
+    "webpack-dev-server": "^5.2.0"
+  },
+  "dependencies": {
+    "electron": "^33.4.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "ts-node": "^10.9.2"
+  }
+}

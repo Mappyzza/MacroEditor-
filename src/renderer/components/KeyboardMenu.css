@@ -1,0 +1,403 @@
+.keyboard-menu-wrapper {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  box-sizing: border-box;
+}
+
+.keyboard-menu {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  width: 95vw;
+  max-width: 1200px;
+  height: 90vh;
+  max-height: 800px;
+  overflow: auto;
+  position: relative;
+  margin: auto;
+  z-index: 10000;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  display: flex;
+  flex-direction: column;
+}
+
+.keyboard-menu-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #e1e5e9;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 12px 12px 0 0;
+}
+
+.keyboard-menu-header h3 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.close-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  font-size: 1.2rem;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.close-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.tab-buttons {
+  display: flex;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e1e5e9;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 16px 24px;
+  background: transparent;
+  border: none;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: #6c757d;
+  border-bottom: 3px solid transparent;
+}
+
+.tab-btn:hover {
+  background: rgba(102, 126, 234, 0.1);
+  color: #495057;
+}
+
+.tab-btn.active {
+  background: white;
+  color: #667eea;
+  border-bottom-color: #667eea;
+}
+
+.tab-content {
+  padding: 24px;
+  flex: 1;
+  overflow: auto;
+}
+
+/* Onglet Simple */
+.simple-tab h4 {
+  margin: 0 0 20px 0;
+  color: #495057;
+  font-size: 1.2rem;
+}
+
+.simple-input-group {
+  margin-bottom: 24px;
+}
+
+.simple-input-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #495057;
+}
+
+.form-control {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #e1e5e9;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  resize: vertical;
+  min-height: 80px;
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* Onglet Combinaison */
+.combination-tab h4 {
+  margin: 0 0 12px 0;
+  color: #495057;
+  font-size: 1.2rem;
+}
+
+.instruction {
+  margin: 0 0 20px 0;
+  color: #6c757d;
+  font-style: italic;
+}
+
+.virtual-keyboard {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid #e1e5e9;
+  margin-bottom: 20px;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.keyboard-row {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 4px;
+  justify-content: center;
+}
+
+.keyboard-row:last-child {
+  margin-bottom: 0;
+}
+
+.virtual-key {
+  background: white;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  padding: 10px 14px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  min-width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  color: #495057;
+}
+
+.virtual-key:hover {
+  background: #e9ecef;
+  border-color: #adb5bd;
+  transform: translateY(-1px);
+}
+
+.virtual-key.selected {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-color: #667eea;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+  transform: translateY(-1px);
+}
+
+.virtual-key.modifier-key {
+  background: #e3f2fd;
+  border-color: #90caf9;
+  color: #1976d2;
+  font-weight: 600;
+}
+
+.virtual-key.modifier-key.selected {
+  background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+  color: white;
+}
+
+.virtual-key.function-key {
+  background: #fff3e0;
+  border-color: #ffcc02;
+  color: #ef6c00;
+  font-size: 0.75rem;
+  min-width: 32px;
+}
+
+.virtual-key.function-key.selected {
+  background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+  color: white;
+}
+
+.virtual-key.special-key {
+  background: #f3e5f5;
+  border-color: #ce93d8;
+  color: #7b1fa2;
+  font-weight: 600;
+}
+
+.virtual-key.special-key.selected {
+  background: linear-gradient(135deg, #9c27b0 0%, #7b1fa2 100%);
+  color: white;
+}
+
+.virtual-key.space-key {
+  min-width: 300px;
+  background: #e8f5e8;
+  border-color: #a5d6a7;
+  color: #388e3c;
+}
+
+.virtual-key.space-key.selected {
+  background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%);
+  color: white;
+}
+
+/* Tailles spéciales pour certaines touches */
+.virtual-key:nth-child(1) { /* Esc */
+  min-width: 50px;
+}
+
+.virtual-key:nth-last-child(1) { /* Backspace */
+  min-width: 80px;
+}
+
+.keyboard-row:nth-child(3) .virtual-key:nth-child(1) { /* Tab */
+  min-width: 70px;
+}
+
+.keyboard-row:nth-child(4) .virtual-key:nth-child(1) { /* CapsLock */
+  min-width: 85px;
+}
+
+.keyboard-row:nth-child(4) .virtual-key:nth-last-child(1) { /* Enter */
+  min-width: 85px;
+}
+
+.keyboard-row:nth-child(5) .virtual-key:first-child,
+.keyboard-row:nth-child(5) .virtual-key:last-child { /* Shift */
+  min-width: 100px;
+}
+
+.keyboard-row:nth-child(6) .virtual-key:nth-child(1),
+.keyboard-row:nth-child(6) .virtual-key:nth-last-child(1) { /* Ctrl */
+  min-width: 70px;
+}
+
+.selected-keys-preview {
+  background: #f8f9fa;
+  border: 1px solid #e1e5e9;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.selected-keys-preview h5 {
+  margin: 0 0 12px 0;
+  color: #495057;
+  font-size: 1rem;
+}
+
+.selected-keys-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.selected-key-tag {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  box-shadow: 0 2px 4px rgba(102, 126, 234, 0.2);
+}
+
+.action-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+
+.btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+}
+
+.btn-secondary {
+  background: #6c757d;
+  color: white;
+  box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: #5a6268;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(108, 117, 125, 0.4);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .keyboard-menu {
+    width: 95vw;
+    height: 95vh;
+  }
+  
+  .virtual-key {
+    min-width: 28px;
+    height: 28px;
+    padding: 4px 6px;
+    font-size: 0.75rem;
+  }
+  
+  .keyboard-row {
+    gap: 2px;
+  }
+  
+  .virtual-keyboard {
+    padding: 12px;
+  }
+  
+  .space-key {
+    min-width: 120px !important;
+  }
+}
+
+/* Animation d'apparition */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.keyboard-menu {
+  animation: slideIn 0.3s ease-out;
+}

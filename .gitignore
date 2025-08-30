@@ -1,0 +1,58 @@
+# Dependances
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Distribution / Build
+dist/
+build/
+out/
+
+# Electron
+app/
+*.app
+*.dmg
+*.exe
+*.deb
+*.rpm
+
+# Logs
+logs/
+*.log
+
+# Cache
+.cache/
+.npm/
+.eslintcache
+
+# Environnement
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Systeme
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Windows
+*.lnk
+
+# Donnees temporaires
+temp/
+tmp/
+*.tmp
+
+# Electron specifique
+/app/node_modules/
+/release/
+/.erb/
