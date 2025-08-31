@@ -25,6 +25,7 @@ const App: React.FC = () => {
   const [showKeyboardMenu, setShowKeyboardMenu] = useState(false);
   const [executingMacro, setExecutingMacro] = useState<Macro | null>(null);
   const [sidebarVisible, setSidebarVisible] = useState(true);
+  const [editingAction, setEditingAction] = useState<MacroAction | null>(null);
 
 
   useEffect(() => {
@@ -444,6 +445,27 @@ const App: React.FC = () => {
     handleMacroUpdate(updatedMacro);
   };
 
+  const handleActionUpdate = (actionId: string, updatedAction: MacroAction) => {
+    if (!workingMacro) return;
+
+    const updatedActions = workingMacro.actions.map(action =>
+      action.id === actionId ? updatedAction : action
+    );
+
+    const updatedMacro = {
+      ...workingMacro,
+      actions: updatedActions,
+      modifiedAt: new Date(),
+    };
+
+    handleMacroUpdate(updatedMacro);
+  };
+
+  const handleEditAction = (action: MacroAction) => {
+    setEditingAction(action);
+    setShowActionSidebar(true);
+  };
+
   const handleOpenKeyboardMenu = () => {
     setShowKeyboardMenu(true);
     setShowActionSidebar(false); // Fermer la sidebar d'actions
@@ -542,8 +564,10 @@ const App: React.FC = () => {
                 onMacroSave={handleMacroSave}
                 onOpenActionLibrary={() => {
                   setSelectedActionType('');
+                  setEditingAction(null);
                   setShowActionSidebar(true);
                 }}
+                onEditAction={handleEditAction}
               />
             ) : (
               <EmptyProjectScreen
@@ -562,12 +586,15 @@ const App: React.FC = () => {
       {/* ActionSidebar avec gestion d'overlay intégrée */}
       <ActionSidebar
         onActionAdd={handleActionAdd}
+        onActionUpdate={handleActionUpdate}
         onClose={() => {
           setShowActionSidebar(false);
           setSelectedActionType('');
+          setEditingAction(null);
         }}
         isVisible={showActionSidebar}
         initialActionType={selectedActionType}
+        editingAction={editingAction}
       />
 
       <NewMacroModal

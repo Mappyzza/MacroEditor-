@@ -503,6 +503,26 @@
   display: none;
 }
 
+.config-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: var(--bg-secondary);
+  color: var(--text-muted);
+  border-color: var(--border-color);
+}
+
+.config-btn:disabled:hover {
+  background-color: var(--bg-secondary);
+  color: var(--text-muted);
+  border-color: var(--border-color);
+  transform: none;
+  box-shadow: none;
+}
+
+.config-btn:disabled::before {
+  display: none;
+}
+
 /* Configuration de position - Design moderne */
 .position-config {
   display: flex;
@@ -1211,6 +1231,24 @@
   color: white;
 }
 
+.virtual-key.arrow-key {
+  background: #e1f5fe;
+  border-color: #4fc3f7;
+  color: #0277bd;
+  font-weight: 600;
+}
+
+.virtual-key.arrow-key.selected {
+  background: linear-gradient(135deg, #0288d1 0%, #0277bd 100%);
+  color: white;
+}
+
+.keyboard-empty-cell {
+  min-width: 42px;
+  height: 42px;
+  /* Cellule vide pour l'espacement */
+}
+
 /* Tailles spéciales pour certaines touches */
 .virtual-key:nth-child(1) { /* Esc */
   min-width: 50px;
@@ -1240,6 +1278,47 @@
 .keyboard-row:nth-child(6) .virtual-key:nth-child(1),
 .keyboard-row:nth-child(6) .virtual-key:nth-last-child(1) { /* Ctrl */
   min-width: 70px;
+}
+
+/* Styles pour les touches directionnelles */
+.keyboard-row:nth-child(7) .virtual-key:nth-child(1) { /* Insert */
+  min-width: 60px;
+}
+
+.keyboard-row:nth-child(7) .virtual-key:nth-child(2) { /* Home */
+  min-width: 50px;
+}
+
+.keyboard-row:nth-child(7) .virtual-key:nth-child(3) { /* PageUp */
+  min-width: 60px;
+}
+
+.keyboard-row:nth-child(7) .virtual-key:nth-child(5) { /* Up */
+  min-width: 50px;
+}
+
+.keyboard-row:nth-child(7) .virtual-key:nth-child(7) { /* Delete */
+  min-width: 60px;
+}
+
+.keyboard-row:nth-child(7) .virtual-key:nth-child(8) { /* End */
+  min-width: 50px;
+}
+
+.keyboard-row:nth-child(7) .virtual-key:nth-child(9) { /* PageDown */
+  min-width: 60px;
+}
+
+.keyboard-row:nth-child(8) .virtual-key:nth-child(2) { /* Left */
+  min-width: 50px;
+}
+
+.keyboard-row:nth-child(8) .virtual-key:nth-child(3) { /* Down */
+  min-width: 50px;
+}
+
+.keyboard-row:nth-child(8) .virtual-key:nth-child(4) { /* Right */
+  min-width: 50px;
 }
 
 .selected-keys-preview {

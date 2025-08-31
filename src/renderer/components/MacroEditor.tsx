@@ -11,6 +11,7 @@ interface MacroEditorProps {
   onMacroTest?: (macro: Macro) => void;
   onMacroSave?: (macro: Macro) => void;
   onOpenActionLibrary?: () => void;
+  onEditAction?: (action: MacroAction) => void;
 }
 
 const MacroEditor: React.FC<MacroEditorProps> = ({
@@ -21,6 +22,7 @@ const MacroEditor: React.FC<MacroEditorProps> = ({
   onMacroTest,
   onMacroSave,
   onOpenActionLibrary,
+  onEditAction,
 }) => {
   const [editingAction, setEditingAction] = useState<string | null>(null);
   const [isDelayModalOpen, setIsDelayModalOpen] = useState<boolean>(false);
@@ -245,7 +247,11 @@ const MacroEditor: React.FC<MacroEditorProps> = ({
                 <div className="action-controls">
                   <button
                     className="btn btn-sm btn-outline-primary"
-                    onClick={() => setEditingAction(action.id)}
+                    onClick={() => {
+                      if (onEditAction) {
+                        onEditAction(action);
+                      }
+                    }}
                     disabled={isExecuting || isRecording}
                     title="Modifier cette action"
                   >

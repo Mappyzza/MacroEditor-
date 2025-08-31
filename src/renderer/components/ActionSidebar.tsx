@@ -6,9 +6,11 @@ const { ipcRenderer } = window.require('electron');
 
 interface ActionSidebarProps {
   onActionAdd: (action: MacroAction) => void;
+  onActionUpdate?: (actionId: string, updatedAction: MacroAction) => void;
   onClose: () => void;
   isVisible: boolean;
   initialActionType?: string;
+  editingAction?: MacroAction | null;
 }
 
 interface MouseClickConfig {
@@ -32,7 +34,7 @@ interface SystemConfig {
   amount?: number;
 }
 
-const ActionSidebar: React.FC<ActionSidebarProps> = ({ onActionAdd, onClose, isVisible, initialActionType }) => {
+const ActionSidebar: React.FC<ActionSidebarProps> = ({ onActionAdd, onActionUpdate, onClose, isVisible, initialActionType, editingAction }) => {
   const [selectedAction, setSelectedAction] = useState<string | null>(null);
   const [mouseConfig, setMouseConfig] = useState<MouseClickConfig>({
     clickType: 'simple',
@@ -105,7 +107,7 @@ const ActionSidebar: React.FC<ActionSidebarProps> = ({ onActionAdd, onClose, isV
     }
 
     const action: MacroAction = {
-      id: Date.now().toString(),
+      id: editingAction?.id || Date.now().toString(),
       type: actionType,
       target: target,
       value: mouseConfig.clickType === 'double' ? 2 : mouseConfig.clickType === 'triple' ? 3 : 1,
@@ -114,7 +116,11 @@ const ActionSidebar: React.FC<ActionSidebarProps> = ({ onActionAdd, onClose, isV
       description: description + (mouseConfig.position ? ` à (${mouseConfig.position.x}, ${mouseConfig.position.y})` : '')
     };
 
-    onActionAdd(action);
+    if (editingAction && onActionUpdate) {
+      onActionUpdate(editingAction.id, action);
+    } else {
+      onActionAdd(action);
+    }
     resetMouseConfig();
     setSelectedAction(null);
   };
@@ -280,7 +286,7 @@ const ActionSidebar: React.FC<ActionSidebarProps> = ({ onActionAdd, onClose, isV
     }
 
     const action: MacroAction = {
-      id: Date.now().toString(),
+      id: editingAction?.id || Date.now().toString(),
       type: actionType,
       target: keyboardConfig.modifiers.join('+'),
       value: value,
@@ -288,7 +294,11 @@ const ActionSidebar: React.FC<ActionSidebarProps> = ({ onActionAdd, onClose, isV
       description: description
     };
 
-    onActionAdd(action);
+    if (editingAction && onActionUpdate) {
+      onActionUpdate(editingAction.id, action);
+    } else {
+      onActionAdd(action);
+    }
     resetKeyboardConfig();
     setSelectedAction(null);
   };
@@ -327,16 +337,20 @@ const ActionSidebar: React.FC<ActionSidebarProps> = ({ onActionAdd, onClose, isV
     }
 
     const action: MacroAction = {
-      id: Date.now().toString(),
+      id: editingAction?.id || Date.now().toString(),
       type: actionType,
       target: systemConfig.direction,
       value: value,
       coordinates: coordinates,
-      delay: 0,
+      delay: systemConfig.actionType === 'wait' ? (systemConfig.delay || 1000) : 0,
       description: description
     };
 
-    onActionAdd(action);
+    if (editingAction && onActionUpdate) {
+      onActionUpdate(editingAction.id, action);
+    } else {
+      onActionAdd(action);
+    }
     resetSystemConfig();
     setSelectedAction(null);
   };
@@ -404,6 +418,76 @@ const ActionSidebar: React.FC<ActionSidebarProps> = ({ onActionAdd, onClose, isV
     // Pour Ctrl+C, Ctrl+X, Ctrl+V, on les laisse passer car ils sont utilisés dans le clavier virtuel
     // Le menu est déjà désactivé, donc ils ne déclencheront pas les actions de menu
   };
+
+  // Effet pour pré-remplir les formulaires lors de l'édition d'une action
+  useEffect(() => {
+    if (editingAction) {
+      // Déterminer le type d'action et pré-remplir les formulaires
+      switch (editingAction.type) {
+        case 'click':
+          setSelectedAction('mouse');
+          const clickValue = editingAction.value as number || 1;
+          const clickType = clickValue === 1 ? 'simple' : clickValue === 2 ? 'double' : 'triple';
+          setMouseConfig({
+            clickType: clickType as any,
+            buttonType: editingAction.target as any || 'left',
+            position: editingAction.coordinates
+          });
+          break;
+        case 'keypress':
+        case 'type':
+          setSelectedAction('keyboard');
+          if (editingAction.type === 'type') {
+            setKeyboardConfig({
+              actionType: 'type',
+              text: editingAction.value as string || '',
+              modifiers: [],
+              key: ''
+            });
+          } else {
+            // Pour keypress, on va essayer de décomposer la combinaison
+            const keyValue = editingAction.value as string || '';
+            setKeyboardConfig({
+              actionType: 'keypress',
+              text: '',
+              modifiers: keyValue.split('+').filter(k => ['Ctrl', 'Alt', 'Shift', 'Win'].includes(k)),
+              key: keyValue
+            });
+          }
+          break;
+        case 'wait':
+          setSelectedAction('system');
+          setSystemConfig({
+            actionType: 'wait',
+            delay: editingAction.delay || 1000,
+            position: undefined,
+            direction: 'up',
+            amount: 3
+          });
+          break;
+        case 'move':
+          setSelectedAction('system');
+          setSystemConfig({
+            actionType: 'move',
+            delay: 1000,
+            position: editingAction.coordinates,
+            direction: 'up',
+            amount: 3
+          });
+          break;
+        case 'scroll':
+          setSelectedAction('system');
+          setSystemConfig({
+            actionType: 'scroll',
+            delay: 1000,
+            position: undefined,
+            direction: editingAction.target as any || 'up',
+            amount: editingAction.value as number || 3
+          });
+          break;
+      }
+    }
+  }, [editingAction]);
 
   useEffect(() => {
     if (isVisible) {
@@ -533,7 +617,9 @@ const ActionSidebar: React.FC<ActionSidebarProps> = ({ onActionAdd, onClose, isV
                 ← Retour
               </button>
               <h4>
-                {selectedAction === 'mouse' && 'Configuration du clic de souris'}
+                {editingAction ? 'Modifier l\'action' : 'Nouvelle action'} - {
+                  selectedAction === 'mouse' && 'Configuration du clic de souris'
+                }
                 {selectedAction === 'keyboard' && 'Actions de clavier'}
                 {selectedAction === 'system' && 'Actions système'}
                 {selectedAction === 'advanced' && 'Actions avancées'}
@@ -648,7 +734,7 @@ const ActionSidebar: React.FC<ActionSidebarProps> = ({ onActionAdd, onClose, isV
                         onClick={handleAddMouseAction}
                         disabled={!mouseConfig.clickType || !mouseConfig.buttonType}
                       >
-                        + Ajouter cette action
+                        {editingAction ? '✓ Modifier cette action' : '+ Ajouter cette action'}
                       </button>
                     </div>
                   </div>
@@ -694,18 +780,21 @@ const ActionSidebar: React.FC<ActionSidebarProps> = ({ onActionAdd, onClose, isV
                       <button 
                         className={`config-btn ${systemConfig.actionType === 'wait' ? 'active' : ''}`}
                         onClick={() => setSystemConfig(prev => ({ ...prev, actionType: 'wait' }))}
+                        disabled={editingAction ? editingAction.type !== 'wait' : false}
                       >
                         Attendre
                       </button>
                       <button 
                         className={`config-btn ${systemConfig.actionType === 'move' ? 'active' : ''}`}
                         onClick={() => setSystemConfig(prev => ({ ...prev, actionType: 'move' }))}
+                        disabled={editingAction ? editingAction.type !== 'move' : false}
                       >
                         Déplacer curseur
                       </button>
                       <button 
                         className={`config-btn ${systemConfig.actionType === 'scroll' ? 'active' : ''}`}
                         onClick={() => setSystemConfig(prev => ({ ...prev, actionType: 'scroll' }))}
+                        disabled={editingAction ? editingAction.type !== 'scroll' : false}
                       >
                         Défiler
                       </button>
@@ -817,7 +906,7 @@ const ActionSidebar: React.FC<ActionSidebarProps> = ({ onActionAdd, onClose, isV
                       disabled={!systemConfig.actionType || 
                         (systemConfig.actionType === 'move' && !systemConfig.position)}
                     >
-                      + Ajouter cette action
+                      {editingAction ? '✓ Modifier cette action' : '+ Ajouter cette action'}
                     </button>
                   </div>
                 </div>
@@ -881,7 +970,7 @@ const ActionSidebar: React.FC<ActionSidebarProps> = ({ onActionAdd, onClose, isV
                       }}
                       disabled={!keyboardConfig.text.trim()}
                     >
-                      Ajouter l'action
+                      {editingAction ? 'Modifier l\'action' : 'Ajouter l\'action'}
                     </button>
                   </div>
                 </div>
@@ -897,28 +986,46 @@ const ActionSidebar: React.FC<ActionSidebarProps> = ({ onActionAdd, onClose, isV
                       ['Tab', 'Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P', '[', ']', '\\'],
                       ['CapsLock', 'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L', ';', "'", 'Enter'],
                       ['Shift', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', ',', '.', '/', 'Shift'],
-                      ['Ctrl', 'Win', 'Alt', 'Space', 'Alt', 'Win', 'Menu', 'Ctrl']
+                      ['Ctrl', 'Win', 'Alt', 'Space', 'Alt', 'Win', 'Menu', 'Ctrl'],
+                      ['Insert', 'Home', 'PageUp', '', 'Up', '', 'Delete', 'End', 'PageDown'],
+                      ['', 'Left', 'Down', 'Right']
                     ].map((row, rowIndex) => (
                       <div key={rowIndex} className="keyboard-row">
-                        {row.map((key) => (
-                          <button
-                            key={key}
-                            className={`virtual-key ${keyboardConfig.modifiers.includes(key) ? 'selected' : ''} ${
-                              ['Shift', 'Ctrl', 'Alt', 'Win'].includes(key) ? 'modifier-key' : ''
-                            } ${['Space'].includes(key) ? 'space-key' : ''} ${
-                              ['Enter', 'Backspace', 'Tab'].includes(key) ? 'special-key' : ''
-                            } ${key.startsWith('F') && key.length <= 3 ? 'function-key' : ''}`}
-                            onClick={() => {
-                              const newModifiers = keyboardConfig.modifiers.includes(key)
-                                ? keyboardConfig.modifiers.filter(k => k !== key)
-                                : [...keyboardConfig.modifiers, key];
-                              setKeyboardConfig(prev => ({ ...prev, modifiers: newModifiers }));
-                            }}
-                            title={`${keyboardConfig.modifiers.includes(key) ? 'Désélectionner' : 'Sélectionner'} ${key}`}
-                          >
-                            {key === 'Space' ? '⎵' : key}
-                          </button>
-                        ))}
+                        {row.map((key, keyIndex) => {
+                          // Ignorer les cellules vides
+                          if (!key) {
+                            return <div key={`empty-${keyIndex}`} className="keyboard-empty-cell"></div>;
+                          }
+                          
+                          return (
+                            <button
+                              key={key}
+                              className={`virtual-key ${keyboardConfig.modifiers.includes(key) ? 'selected' : ''} ${
+                                ['Shift', 'Ctrl', 'Alt', 'Win'].includes(key) ? 'modifier-key' : ''
+                              } ${['Space'].includes(key) ? 'space-key' : ''} ${
+                                ['Enter', 'Backspace', 'Tab'].includes(key) ? 'special-key' : ''
+                              } ${key.startsWith('F') && key.length <= 3 ? 'function-key' : ''} ${
+                                ['Up', 'Down', 'Left', 'Right', 'Home', 'End', 'PageUp', 'PageDown', 'Insert', 'Delete'].includes(key) ? 'arrow-key' : ''
+                              }`}
+                              onClick={() => {
+                                const newModifiers = keyboardConfig.modifiers.includes(key)
+                                  ? keyboardConfig.modifiers.filter(k => k !== key)
+                                  : [...keyboardConfig.modifiers, key];
+                                setKeyboardConfig(prev => ({ ...prev, modifiers: newModifiers }));
+                              }}
+                              title={`${keyboardConfig.modifiers.includes(key) ? 'Désélectionner' : 'Sélectionner'} ${key}`}
+                            >
+                              {key === 'Space' ? '⎵' : 
+                               key === 'Up' ? '↑' :
+                               key === 'Down' ? '↓' :
+                               key === 'Left' ? '←' :
+                               key === 'Right' ? '→' :
+                               key === 'PageUp' ? 'PgUp' :
+                               key === 'PageDown' ? 'PgDn' :
+                               key}
+                            </button>
+                          );
+                        })}
                       </div>
                     ))}
                   </div>
@@ -954,7 +1061,7 @@ const ActionSidebar: React.FC<ActionSidebarProps> = ({ onActionAdd, onClose, isV
                       }}
                       disabled={keyboardConfig.modifiers.length === 0}
                     >
-                      Ajouter la combinaison
+                      {editingAction ? 'Modifier la combinaison' : 'Ajouter la combinaison'}
                     </button>
                   </div>
                 </div>
