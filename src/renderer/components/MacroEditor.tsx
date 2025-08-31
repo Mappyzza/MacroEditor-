@@ -124,14 +124,21 @@ const MacroEditor: React.FC<MacroEditorProps> = ({
     <div className="macro-editor">
       <div className="editor-header">
         <div className="macro-header-line">
-          <input
-            type="text"
-            className="macro-title-compact"
-            value={macro.name}
-            onChange={(e) => handleNameChange(e.target.value)}
-            placeholder="Nom de la macro"
-            disabled={isExecuting}
-          />
+          <div className="macro-title-section">
+            <div className="macro-type-badge">
+              <span className={`type-icon ${macro.type === 'main' ? 'main-type' : 'branche-type'}`}>
+                {macro.type === 'main' ? '🎯' : '🌿'}
+              </span>
+            </div>
+            <input
+              type="text"
+              className="macro-title-compact"
+              value={macro.name}
+              onChange={(e) => handleNameChange(e.target.value)}
+              placeholder="Nom de la macro"
+              disabled={isExecuting}
+            />
+          </div>
           <div className="macro-header-actions">
             <button
               className="btn btn-sm btn-test"

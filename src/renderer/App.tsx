@@ -6,6 +6,9 @@ import ActionSidebar from './components/ActionSidebar';
 import MacroExecutor from './components/MacroExecutor';
 import NewMacroModal from './components/NewMacroModal';
 import KeyboardMenu from './components/KeyboardMenu';
+
+import WelcomeScreen from './components/WelcomeScreen';
+import EmptyProjectScreen from './components/EmptyProjectScreen';
 import './styles/App.css';
 
 const { ipcRenderer } = window.require('electron');
@@ -23,8 +26,12 @@ const App: React.FC = () => {
   const [executingMacro, setExecutingMacro] = useState<Macro | null>(null);
   const [sidebarVisible, setSidebarVisible] = useState(true);
 
+
   useEffect(() => {
-    // Charger le projet depuis localStorage ou créer un projet par défaut
+    // Vider le localStorage pour forcer l'affichage de la page d'accueil
+    localStorage.removeItem('macroEditorProject');
+    
+    // Charger le projet depuis localStorage s'il existe
     const loadProject = () => {
       try {
         const savedProject = localStorage.getItem('macroEditorProject');
@@ -46,17 +53,9 @@ const App: React.FC = () => {
         console.error('❌ Erreur lors du chargement du projet:', error);
       }
 
-      // Créer un projet par défaut si aucun n'existe
-      const defaultProject: MacroProject = {
-        id: 'default',
-        name: 'Nouveau Projet',
-        description: 'Projet de macro par défaut',
-        macros: [],
-        createdAt: new Date(),
-        modifiedAt: new Date(),
-      };
-      console.log('🆕 Nouveau projet créé');
-      setCurrentProject(defaultProject);
+      // Pas de projet par défaut - afficher la page d'accueil
+      console.log('🏠 Aucun projet chargé - affichage de la page d\'accueil');
+      setCurrentProject(null);
     };
 
     loadProject();
@@ -124,8 +123,21 @@ const App: React.FC = () => {
   useEffect(() => {
     if (currentProject) {
       try {
+        // Sauvegarder dans localStorage
         localStorage.setItem('macroEditorProject', JSON.stringify(currentProject));
-        console.log('💾 Projet sauvegardé automatiquement');
+        console.log('💾 Projet sauvegardé automatiquement en mémoire');
+        
+        // Sauvegarder dans le fichier si un chemin est défini
+        if (currentProject.filePath) {
+          ipcRenderer.invoke('save-macro', {
+            filePath: currentProject.filePath,
+            content: currentProject
+          }).then(() => {
+            console.log('💾 Projet sauvegardé automatiquement dans le fichier:', currentProject.filePath);
+          }).catch((error: any) => {
+            console.error('❌ Erreur lors de la sauvegarde automatique du fichier:', error);
+          });
+        }
       } catch (error) {
         console.error('❌ Erreur lors de la sauvegarde automatique:', error);
       }
@@ -152,6 +164,27 @@ const App: React.FC = () => {
 
     setCurrentProject(newProject);
     setSelectedMacro(null);
+    setWorkingMacro(null);
+  };
+
+
+
+  const handleLoadMacro = () => {
+    setSidebarVisible(true);
+  };
+
+  const handleCreateMacroFromEmpty = () => {
+    setShowNewMacroModal(true);
+  };
+
+  const handleProjectLoad = (project: MacroProject) => {
+    setCurrentProject(project);
+    setSelectedMacro(null);
+    setWorkingMacro(null);
+  };
+
+  const handleProjectSave = (project: MacroProject) => {
+    setCurrentProject(project);
   };
 
   const handleNewMacro = () => {
@@ -162,7 +195,7 @@ const App: React.FC = () => {
     setShowNewMacroModal(true);
   };
 
-  const handleCreateMacro = (title: string, description?: string) => {
+  const handleCreateMacro = (title: string, description?: string, type: 'main' | 'branche' = 'main') => {
     if (!currentProject) return;
 
     const newMacro: Macro = {
@@ -173,6 +206,7 @@ const App: React.FC = () => {
       createdAt: new Date(),
       modifiedAt: new Date(),
       version: '1.0.0',
+      type: type,
     };
 
     // Créer une nouvelle macro en mode édition (NON sauvegardée dans la liste)
@@ -180,7 +214,7 @@ const App: React.FC = () => {
     setWorkingMacro(newMacro); // Nouvelle macro en cours d'édition
     setShowNewMacroModal(false);
     
-    console.log('🆕 Nouvelle macro créée en mode édition:', title);
+    console.log('🆕 Nouvelle macro créée en mode édition:', title, 'Type:', type);
   };
 
   const handleCancelNewMacro = () => {
@@ -470,43 +504,58 @@ const App: React.FC = () => {
         </button>
       )}
 
-      <div className="app-content">
-        {sidebarVisible && (
-          <>
-            <div 
-              className="sidebar-overlay" 
-              onClick={() => setSidebarVisible(false)}
-            />
-            <Sidebar
-              project={currentProject}
-              selectedMacro={selectedMacro}
-              onMacroSelect={handleMacroSelect}
-              onMacroDelete={handleMacroDelete}
-              onNewMacro={handleNewMacro}
-              onNewProject={handleNewProject}
-              onMacroExecute={handleMacroExecuteFromSidebar}
-              onCloseSidebar={() => setSidebarVisible(false)}
-            />
-          </>
-        )}
-        
-        <div className="main-content">
-          {workingMacro ? (
-            <MacroEditor
-              macro={workingMacro}
-              onMacroUpdate={handleMacroUpdate}
-              isRecording={isRecording}
-              isExecuting={isExecuting}
-              onMacroTest={handleMacroTest}
-              onMacroSave={handleMacroSave}
-              onOpenActionLibrary={() => {
-                setSelectedActionType('');
-                setShowActionSidebar(true);
-              }}
-            />
-          ) : null}
+      {(() => { console.log('🔍 État currentProject:', currentProject); return !currentProject; })() ? (
+        <WelcomeScreen 
+          onNewProject={handleNewProject}
+        />
+      ) : (
+        <div className="app-content">
+          {sidebarVisible && (
+            <>
+              <div 
+                className="sidebar-overlay" 
+                onClick={() => setSidebarVisible(false)}
+              />
+              <Sidebar
+                project={currentProject}
+                selectedMacro={selectedMacro}
+                onMacroSelect={handleMacroSelect}
+                onMacroDelete={handleMacroDelete}
+                onNewMacro={handleNewMacro}
+                onNewProject={handleNewProject}
+                onMacroExecute={handleMacroExecuteFromSidebar}
+                onCloseSidebar={() => setSidebarVisible(false)}
+                onProjectLoad={handleProjectLoad}
+                onProjectSave={handleProjectSave}
+              />
+            </>
+          )}
+          
+          <div className="main-content">
+            {workingMacro ? (
+              <MacroEditor
+                macro={workingMacro!}
+                onMacroUpdate={handleMacroUpdate}
+                isRecording={isRecording}
+                isExecuting={isExecuting}
+                onMacroTest={handleMacroTest}
+                onMacroSave={handleMacroSave}
+                onOpenActionLibrary={() => {
+                  setSelectedActionType('');
+                  setShowActionSidebar(true);
+                }}
+              />
+            ) : (
+              <EmptyProjectScreen
+                projectName={currentProject?.name || 'Projet'}
+                hasMacros={(currentProject?.macros.length || 0) > 0}
+                onLoadMacro={handleLoadMacro}
+                onCreateMacro={handleCreateMacroFromEmpty}
+              />
+            )}
+          </div>
         </div>
-      </div>
+      )}
       
       
 
@@ -543,6 +592,8 @@ const App: React.FC = () => {
           onClose={handleCloseKeyboardMenu} 
         />
       )}
+
+
     </div>
   );
 };

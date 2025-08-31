@@ -1,0 +1,130 @@
+{
+  "id": "project-1756682160650",
+  "name": "Nouveau Projet",
+  "description": "Projet de macro vide",
+  "macros": [
+    {
+      "id": "macro-1756682203806",
+      "name": "test",
+      "description": "ceci est un test",
+      "actions": [
+        {
+          "id": "1756682225236",
+          "type": "click",
+          "target": "left",
+          "value": 1,
+          "coordinates": {
+            "x": 490,
+            "y": 844
+          },
+          "delay": 0,
+          "description": "Clic left à (490, 844)"
+        },
+        {
+          "id": "1756682250651",
+          "type": "click",
+          "target": "left",
+          "value": 1,
+          "coordinates": {
+            "x": 1185,
+            "y": 18
+          },
+          "delay": 0,
+          "description": "Clic left à (1185, 18)"
+        },
+        {
+          "id": "1756682261307",
+          "type": "click",
+          "target": "left",
+          "value": 3,
+          "coordinates": {
+            "x": 586,
+            "y": 64
+          },
+          "delay": 0,
+          "description": "Triple-clic left à (586, 64)"
+        },
+        {
+          "id": "1756682266260",
+          "type": "keypress",
+          "target": "Backspace",
+          "value": "{BACKSPACE}",
+          "delay": 0,
+          "description": "Combinaison: Backspace"
+        },
+        {
+          "id": "1756682282218",
+          "type": "type",
+          "target": "",
+          "value": "google",
+          "delay": 0,
+          "description": "Saisie: \"google\""
+        },
+        {
+          "id": "1756682322147",
+          "type": "keypress",
+          "target": "Space",
+          "value": " ",
+          "delay": 0,
+          "description": "Combinaison: Space"
+        },
+        {
+          "id": "1756682298906",
+          "type": "keypress",
+          "target": "Enter",
+          "value": "{ENTER}",
+          "delay": 0,
+          "description": "Combinaison: Enter"
+        },
+        {
+          "id": "1756682347212",
+          "type": "click",
+          "target": "left",
+          "value": 1,
+          "coordinates": {
+            "x": 226,
+            "y": 306
+          },
+          "delay": 0,
+          "description": "Clic left à (226, 306)"
+        },
+        {
+          "id": "1756682359609",
+          "type": "type",
+          "target": "",
+          "value": "pac man",
+          "delay": 0,
+          "description": "Saisie: \"pac man\""
+        },
+        {
+          "id": "1756682379676",
+          "type": "keypress",
+          "target": "Enter",
+          "value": "{ENTER}",
+          "delay": 0,
+          "description": "Combinaison: Enter"
+        },
+        {
+          "id": "1756682411030",
+          "type": "click",
+          "target": "left",
+          "value": 1,
+          "coordinates": {
+            "x": 531,
+            "y": 570
+          },
+          "delay": 0,
+          "description": "Clic left à (531, 570)"
+        }
+      ],
+      "createdAt": "2025-08-31T23:16:43.806Z",
+      "modifiedAt": "2025-08-31T23:22:23.909Z",
+      "version": "1.0.0",
+      "type": "main"
+    }
+  ],
+  "createdAt": "2025-08-31T23:16:00.650Z",
+  "modifiedAt": "2025-08-31T23:22:23.909Z",
+  "filePath": "C:\\Users\\ticek\\Documents\\MacroEditor\\sauvegardes projets\\test.json",
+  "fileName": "test.json"
+}

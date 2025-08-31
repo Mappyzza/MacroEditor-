@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, dialog, ipcMain } from 'electron';
+import { app, BrowserWindow, Menu, dialog, ipcMain, shell } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
 import { SimpleActions, ActionPayload } from './simpleActions';
@@ -8,6 +8,7 @@ class MacroEditorApp {
   private mainWindow: BrowserWindow | null = null;
   private keyboardShortcutsEnabled: boolean = true;
   private virtualKeyboardActive: boolean = false;
+  private defaultSavePath: string = '';
 
   constructor() {
     this.setupApp();
@@ -15,6 +16,7 @@ class MacroEditorApp {
 
   private setupApp(): void {
     app.whenReady().then(() => {
+      this.initializeDefaultSavePath();
       this.createWindow();
       this.setupMenu();
       this.setupIPC();
@@ -66,6 +68,33 @@ class MacroEditorApp {
 
     // Intercepteur d'événements clavier pour bloquer les raccourcis intégrés
     this.setupKeyboardInterceptor();
+  }
+
+  private initializeDefaultSavePath(): void {
+    try {
+      // Créer le dossier de sauvegarde dans le répertoire de l'application
+      const appPath = app.getAppPath();
+      this.defaultSavePath = path.join(appPath, 'sauvegardes projets');
+      
+      // Créer le dossier s'il n'existe pas
+      if (!fs.existsSync(this.defaultSavePath)) {
+        fs.mkdirSync(this.defaultSavePath, { recursive: true });
+        console.log(`📁 Dossier de sauvegarde créé: ${this.defaultSavePath}`);
+      } else {
+        console.log(`📁 Dossier de sauvegarde existant: ${this.defaultSavePath}`);
+      }
+    } catch (error) {
+      console.error('Erreur lors de la création du dossier de sauvegarde:', error);
+      // Fallback vers le dossier Documents
+      this.defaultSavePath = path.join(require('os').homedir(), 'Documents', 'MacroEditor', 'sauvegardes projets');
+      try {
+        fs.mkdirSync(this.defaultSavePath, { recursive: true });
+        console.log(`📁 Dossier de sauvegarde de fallback créé: ${this.defaultSavePath}`);
+      } catch (fallbackError) {
+        console.error('Erreur lors de la création du dossier de fallback:', fallbackError);
+        this.defaultSavePath = '';
+      }
+    }
   }
 
   private setupKeyboardInterceptor(): void {
@@ -387,6 +416,63 @@ class MacroEditorApp {
         return { success: false, error: error instanceof Error ? error.message : String(error) };
       }
     });
+
+    // Handler pour afficher le dialogue de sauvegarde
+    ipcMain.handle('show-save-dialog', async (event, options) => {
+      try {
+        if (!this.mainWindow) return { canceled: true };
+        const result = await dialog.showSaveDialog(this.mainWindow, options);
+        return result;
+      } catch (error) {
+        console.error('Erreur lors de l\'affichage du dialogue de sauvegarde:', error);
+        return { canceled: true, error: error instanceof Error ? error.message : String(error) };
+      }
+    });
+
+    // Handler pour afficher le dialogue d'ouverture
+    ipcMain.handle('show-open-dialog', async (event, options) => {
+      try {
+        if (!this.mainWindow) return { canceled: true };
+        const result = await dialog.showOpenDialog(this.mainWindow, options);
+        return result;
+      } catch (error) {
+        console.error('Erreur lors de l\'affichage du dialogue d\'ouverture:', error);
+        return { canceled: true, error: error instanceof Error ? error.message : String(error) };
+      }
+    });
+
+    // Handler pour ouvrir l'emplacement du fichier dans l'explorateur
+    ipcMain.handle('show-item-in-folder', async (event, filePath) => {
+      try {
+
+        await shell.showItemInFolder(filePath);
+        return { success: true };
+      } catch (error) {
+        console.error('Erreur lors de l\'ouverture de l\'emplacement:', error);
+        return { success: false, error: error instanceof Error ? error.message : String(error) };
+      }
+    });
+
+    // Handler pour supprimer un fichier
+    ipcMain.handle('delete-file', async (event, filePath) => {
+      try {
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+          console.log(`🗑️ Fichier supprimé: ${filePath}`);
+          return { success: true };
+        } else {
+          return { success: false, error: 'Fichier non trouvé' };
+        }
+      } catch (error) {
+        console.error('Erreur lors de la suppression du fichier:', error);
+        return { success: false, error: error instanceof Error ? error.message : String(error) };
+      }
+    });
+
+    // Handler pour obtenir le chemin de sauvegarde par défaut
+    ipcMain.handle('get-default-save-path', async (event) => {
+      return { success: true, path: this.defaultSavePath };
+    });
   }
 
   private newMacro(): void {
@@ -397,6 +483,7 @@ class MacroEditorApp {
     if (!this.mainWindow) return;
 
     const result = await dialog.showOpenDialog(this.mainWindow, {
+      defaultPath: this.defaultSavePath,
       filters: [
         { name: 'Fichiers Macro', extensions: ['json', 'macro'] },
         { name: 'Tous les fichiers', extensions: ['*'] },

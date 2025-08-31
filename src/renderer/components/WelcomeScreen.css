@@ -1,0 +1,191 @@
+/* Page d'accueil */
+.welcome-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+  padding: var(--spacing-lg);
+}
+
+.welcome-content {
+  text-align: center;
+  max-width: 600px;
+  width: 100%;
+}
+
+.welcome-header {
+  margin-bottom: var(--spacing-xxl);
+}
+
+.welcome-title {
+  font-size: 3rem;
+  font-weight: 700;
+  margin: 0 0 var(--spacing-md) 0;
+  background: linear-gradient(135deg, var(--primary-color), #0056b3);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-md);
+}
+
+.welcome-icon {
+  font-size: 3.5rem;
+  filter: drop-shadow(0 4px 8px rgba(0, 122, 204, 0.3));
+}
+
+.welcome-subtitle {
+  font-size: var(--font-size-lg);
+  color: var(--text-muted);
+  margin: 0;
+  font-weight: 400;
+}
+
+.welcome-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-xxl);
+}
+
+.welcome-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-xl);
+  border: 2px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: left;
+  width: 100%;
+  box-shadow: var(--shadow-md);
+}
+
+.welcome-btn:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--primary-color);
+}
+
+.welcome-btn-primary {
+  background: linear-gradient(135deg, rgba(0, 122, 204, 0.1), rgba(0, 86, 179, 0.1));
+  border-color: var(--primary-color);
+}
+
+.welcome-btn-primary:hover {
+  background: linear-gradient(135deg, rgba(0, 122, 204, 0.2), rgba(0, 86, 179, 0.2));
+  box-shadow: 0 8px 25px rgba(0, 122, 204, 0.3);
+}
+
+.welcome-btn-secondary {
+  background: linear-gradient(135deg, rgba(40, 167, 69, 0.1), rgba(25, 135, 84, 0.1));
+  border-color: var(--success-color);
+}
+
+.welcome-btn-secondary:hover {
+  background: linear-gradient(135deg, rgba(40, 167, 69, 0.2), rgba(25, 135, 84, 0.2));
+  box-shadow: 0 8px 25px rgba(40, 167, 69, 0.3);
+}
+
+.welcome-btn-icon {
+  font-size: 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+}
+
+.welcome-btn:hover .welcome-btn-icon {
+  transform: scale(1.1);
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.welcome-btn-content {
+  flex: 1;
+}
+
+.welcome-btn-content h3 {
+  font-size: var(--font-size-xl);
+  font-weight: 600;
+  margin: 0 0 var(--spacing-xs) 0;
+  color: var(--text-primary);
+}
+
+.welcome-btn-content p {
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.welcome-footer {
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--border-color);
+}
+
+.welcome-help {
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.welcome-help strong {
+  color: var(--text-primary);
+}
+
+/* Animation d'entrée */
+@keyframes welcomeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.welcome-content {
+  animation: welcomeSlideIn 0.6s ease-out;
+}
+
+.welcome-btn {
+  animation: welcomeSlideIn 0.6s ease-out;
+}
+
+.welcome-btn:nth-child(2) {
+  animation-delay: 0.1s;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .welcome-title {
+    font-size: 2.5rem;
+  }
+  
+  .welcome-icon {
+    font-size: 3rem;
+  }
+  
+  .welcome-btn {
+    padding: var(--spacing-lg);
+  }
+  
+  .welcome-btn-icon {
+    width: 60px;
+    height: 60px;
+    font-size: 2.5rem;
+  }
+}

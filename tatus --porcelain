@@ -1,0 +1,19 @@
+sauvegardes projets/test.json
+src/main/main.ts
+src/renderer/App.tsx
+src/renderer/components/ActionSidebar.css
+src/renderer/components/ActionSidebar.tsx
+src/renderer/components/EmptyProjectScreen.css
+src/renderer/components/EmptyProjectScreen.tsx
+src/renderer/components/FileManager.css
+src/renderer/components/FileManager.tsx
+src/renderer/components/MacroEditor.css
+src/renderer/components/MacroEditor.tsx
+src/renderer/components/NewMacroModal.css
+src/renderer/components/NewMacroModal.tsx
+src/renderer/components/Sidebar.css
+src/renderer/components/Sidebar.tsx
+src/renderer/components/WelcomeScreen.css
+src/renderer/components/WelcomeScreen.tsx
+src/renderer/styles/global.css
+src/types/macro.ts

@@ -16,6 +16,7 @@ export interface Macro {
   createdAt: Date;
   modifiedAt: Date;
   version: string;
+  type: 'main' | 'branche';
 }
 
 export interface MacroProject {
@@ -26,6 +27,7 @@ export interface MacroProject {
   createdAt: Date;
   modifiedAt: Date;
   filePath?: string;
+  fileName?: string;
 }
 
 export interface MacroExecutionContext {

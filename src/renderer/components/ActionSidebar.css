@@ -47,10 +47,29 @@
   border-bottom: 1px solid var(--border-color);
 }
 
-.action-sidebar-header h3 {
-  margin: 0;
-  font-size: var(--font-size-lg);
-  font-weight: 600;
+.hamburger-menu-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: var(--border-radius);
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: white;
+  transition: all 0.2s ease;
+}
+
+.hamburger-menu-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: scale(1.05);
+}
+
+.hamburger-menu-btn svg {
+  width: 20px;
+  height: 20px;
 }
 
 .close-btn {
