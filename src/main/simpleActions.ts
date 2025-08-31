@@ -128,7 +128,7 @@ public class Win32 {
   }
 
   // Fonction pour mapper les codes de touches vers les formats appropriés pour chaque méthode
-  private static mapKeyForMethod(key: string, method: 'nircmd' | 'autohotkey' | 'powershell' | 'python'): string {
+  private static mapKeyForMethod(key: string, method: 'nircmd' | 'autohotkey' | 'powershell' | 'python'): string | null {
     // Mapping des touches spéciales vers les formats appropriés
     const keyMappings: { [key: string]: { [method: string]: string } } = {
       '{ENTER}': {
@@ -210,7 +210,12 @@ public class Win32 {
       else if (method === 'powershell') {
         mappedKey = key.replace(/\^/g, '^').replace(/!/g, '%').replace(/\+/g, '+').replace(/#/g, '#');
       }
-      // Pour nircmd et python, on garde le format tel quel
+      // Pour nircmd, convertir les combinaisons en format nircmd
+      else if (method === 'nircmd') {
+        // nircmd ne supporte pas les combinaisons directement, on retourne null pour forcer le fallback
+        return null;
+      }
+      // Pour python, on garde le format tel quel
       
       return mappedKey;
     }
@@ -229,10 +234,17 @@ public class Win32 {
     console.log(`⌨️ EXÉCUTION DIRECTE - Touche: ${value}`);
 
     try {
-             // MÉTHODE 1: Utiliser nircmd
+             // MÉTHODE 1: Utiliser nircmd (seulement pour les touches simples)
        try {
          const nircmdPath = path.join(__dirname, '../../tools/nircmd.exe');
         const mappedKey = this.mapKeyForMethod(value, 'nircmd');
+        
+        // Si nircmd ne peut pas gérer cette touche (combinaisons), passer à la méthode suivante
+        if (mappedKey === null) {
+          console.log('⚠️ nircmd ne supporte pas cette combinaison, passage à AutoHotkey...');
+          throw new Error('Combinaison non supportée par nircmd');
+        }
+        
         const nircmdCommand = `"${nircmdPath}" sendkeypress ${mappedKey}`;
         console.log(`Tentative nircmd: ${nircmdCommand}`);
         const { stdout, stderr } = await execAsync(nircmdCommand);

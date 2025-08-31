@@ -46,6 +46,16 @@ const KeyboardMenu: React.FC<KeyboardMenuProps> = ({ onActionAdd, onClose }) => 
     'Backspace': '{BACKSPACE}',
     'Space': ' ',
     'Menu': '{APPSKEY}',
+    'Delete': '{DELETE}',
+    'Insert': '{INSERT}',
+    'Home': '{HOME}',
+    'End': '{END}',
+    'PageUp': '{PGUP}',
+    'PageDown': '{PGDN}',
+    'Up': '{UP}',
+    'Down': '{DOWN}',
+    'Left': '{LEFT}',
+    'Right': '{RIGHT}',
     
     // Modificateurs (pour AutoHotkey, format différent en combinaison)
     'Shift': '{SHIFT}',
@@ -80,11 +90,9 @@ const KeyboardMenu: React.FC<KeyboardMenuProps> = ({ onActionAdd, onClose }) => 
     setSimpleText('');
   };
 
-  const handleAddCombinationAction = () => {
-    if (selectedKeys.size === 0) return;
-
-    const keysArray = Array.from(selectedKeys);
-    let combinationString = '';
+  // Fonction pour construire une combinaison de touches au format AutoHotkey
+  const buildKeyCombination = (keysArray: string[]): string => {
+    if (keysArray.length === 0) return '';
     
     // Séparer les modificateurs des autres touches
     const modifiers = keysArray.filter(key => ['Ctrl', 'Alt', 'Shift', 'Win'].includes(key));
@@ -93,50 +101,55 @@ const KeyboardMenu: React.FC<KeyboardMenuProps> = ({ onActionAdd, onClose }) => 
     if (keysArray.length === 1) {
       // Une seule touche
       const key = keysArray[0];
-      if (specialKeys[key as keyof typeof specialKeys]) {
-        combinationString = specialKeys[key as keyof typeof specialKeys];
-      } else if (key.length === 1 && /^[A-Z]$/.test(key)) {
-        combinationString = key.toLowerCase();
+      if (key.length === 1 && /^[A-Z]$/.test(key)) {
+        // Touche alphabétique seule - convertir en minuscule
+        return key.toLowerCase();
+      } else if (specialKeys[key as keyof typeof specialKeys]) {
+        return specialKeys[key as keyof typeof specialKeys];
       } else {
-        combinationString = key;
+        return key;
       }
+    } else if (modifiers.length > 0 && otherKeys.length > 0) {
+      // Combinaison de touches avec modificateurs
+      let modifierPrefix = '';
+      if (modifiers.includes('Ctrl')) modifierPrefix += '^';
+      if (modifiers.includes('Alt')) modifierPrefix += '!';
+      if (modifiers.includes('Shift')) modifierPrefix += '+';
+      if (modifiers.includes('Win')) modifierPrefix += '#';
+      
+      // Prendre la première touche non-modificateur
+      const mainKey = otherKeys[0];
+      let keyCode = '';
+      
+      if (mainKey.length === 1 && /^[A-Z]$/.test(mainKey)) {
+        keyCode = mainKey.toLowerCase();
+      } else if (specialKeys[mainKey as keyof typeof specialKeys]) {
+        keyCode = specialKeys[mainKey as keyof typeof specialKeys];
+      } else {
+        keyCode = mainKey;
+      }
+      
+      return modifierPrefix + keyCode;
     } else {
-      // Combinaison de touches - utiliser la syntaxe AutoHotkey
-      if (modifiers.length > 0 && otherKeys.length > 0) {
-        // Format: ^a (Ctrl+A), !{F4} (Alt+F4), etc.
-        let modifierPrefix = '';
-        if (modifiers.includes('Ctrl')) modifierPrefix += '^';
-        if (modifiers.includes('Alt')) modifierPrefix += '!';
-        if (modifiers.includes('Shift')) modifierPrefix += '+';
-        if (modifiers.includes('Win')) modifierPrefix += '#';
-        
-        // Prendre la première touche non-modificateur
-        const mainKey = otherKeys[0];
-        let keyCode = '';
-        
-        if (specialKeys[mainKey as keyof typeof specialKeys]) {
-          keyCode = specialKeys[mainKey as keyof typeof specialKeys];
-        } else if (mainKey.length === 1 && /^[A-Z]$/.test(mainKey)) {
-          keyCode = mainKey.toLowerCase();
-        } else {
-          keyCode = mainKey;
-        }
-        
-        combinationString = modifierPrefix + keyCode;
-      } else {
-        // Pas de modificateurs, juste des touches multiples
-        combinationString = keysArray
-          .map(key => {
-            if (specialKeys[key as keyof typeof specialKeys]) {
-              return specialKeys[key as keyof typeof specialKeys];
-            } else if (key.length === 1 && /^[A-Z]$/.test(key)) {
-              return key.toLowerCase();
-            }
-            return key;
-          })
-          .join('');
-      }
+      // Pas de modificateurs, juste des touches multiples
+      return keysArray
+        .map(key => {
+          if (key.length === 1 && /^[A-Z]$/.test(key)) {
+            return key.toLowerCase();
+          } else if (specialKeys[key as keyof typeof specialKeys]) {
+            return specialKeys[key as keyof typeof specialKeys];
+          }
+          return key;
+        })
+        .join('');
     }
+  };
+
+  const handleAddCombinationAction = () => {
+    if (selectedKeys.size === 0) return;
+
+    const keysArray = Array.from(selectedKeys);
+    const combinationString = buildKeyCombination(keysArray);
 
     const action: MacroAction = {
       id: `action-${Date.now()}`,

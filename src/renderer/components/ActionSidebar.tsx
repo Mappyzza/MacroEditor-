@@ -62,7 +62,7 @@ const ActionSidebar: React.FC<ActionSidebarProps> = ({ onActionAdd, onClose, isV
     try {
       setIsCapturingPosition(true);
       
-      // Demander au processus principal de démarrer la capture
+      // Demander au processus principal de démarrer la capture en temps réel
       const result = await ipcRenderer.invoke('start-position-capture');
       
       if (result && result.x !== undefined && result.y !== undefined) {
@@ -74,6 +74,16 @@ const ActionSidebar: React.FC<ActionSidebarProps> = ({ onActionAdd, onClose, isV
       return null;
     } finally {
       setIsCapturingPosition(false);
+    }
+  };
+
+  // Annuler la capture de position
+  const handleCancelCapture = async () => {
+    try {
+      await ipcRenderer.invoke('cancel-position-capture');
+      setIsCapturingPosition(false);
+    } catch (error) {
+      console.error('Erreur lors de l\'annulation de la capture:', error);
     }
   };
 
@@ -151,6 +161,16 @@ const ActionSidebar: React.FC<ActionSidebarProps> = ({ onActionAdd, onClose, isV
       'Alt': '{ALT}',
       'Win': '{LWIN}',
       'Menu': '{APPS}',
+      'Delete': '{DELETE}',
+      'Insert': '{INSERT}',
+      'Home': '{HOME}',
+      'End': '{END}',
+      'PageUp': '{PGUP}',
+      'PageDown': '{PGDN}',
+      'Up': '{UP}',
+      'Down': '{DOWN}',
+      'Left': '{LEFT}',
+      'Right': '{RIGHT}',
       'F1': '{F1}',
       'F2': '{F2}',
       'F3': '{F3}',
@@ -179,6 +199,56 @@ const ActionSidebar: React.FC<ActionSidebarProps> = ({ onActionAdd, onClose, isV
     return keyMap[keyName] || keyName;
   };
 
+  // Fonction pour construire une combinaison de touches au format AutoHotkey
+  const buildKeyCombination = (keysArray: string[]): string => {
+    if (keysArray.length === 0) return '';
+    
+    // Séparer les modificateurs des autres touches
+    const modifiers = keysArray.filter(key => ['Ctrl', 'Alt', 'Shift', 'Win'].includes(key));
+    const otherKeys = keysArray.filter(key => !['Ctrl', 'Alt', 'Shift', 'Win'].includes(key));
+    
+    if (keysArray.length === 1) {
+      // Une seule touche
+      const key = keysArray[0];
+      if (key.length === 1 && /^[A-Z]$/.test(key)) {
+        // Touche alphabétique seule - convertir en minuscule
+        return key.toLowerCase();
+      } else {
+        // Touche spéciale - utiliser le mapping
+        return mapSpecialKey(key);
+      }
+    } else if (modifiers.length > 0 && otherKeys.length > 0) {
+      // Combinaison de touches avec modificateurs
+      let modifierPrefix = '';
+      if (modifiers.includes('Ctrl')) modifierPrefix += '^';
+      if (modifiers.includes('Alt')) modifierPrefix += '!';
+      if (modifiers.includes('Shift')) modifierPrefix += '+';
+      if (modifiers.includes('Win')) modifierPrefix += '#';
+      
+      // Prendre la première touche non-modificateur et la mapper
+      const mainKey = otherKeys[0];
+      let keyCode = '';
+      
+      if (mainKey.length === 1 && /^[A-Z]$/.test(mainKey)) {
+        // Touche alphabétique - convertir en minuscule pour AutoHotkey
+        keyCode = mainKey.toLowerCase();
+      } else {
+        // Touche spéciale - utiliser le mapping
+        keyCode = mapSpecialKey(mainKey);
+      }
+      
+      return modifierPrefix + keyCode;
+    } else {
+      // Pas de modificateurs, juste des touches multiples
+      return keysArray.map(key => {
+        if (key.length === 1 && /^[A-Z]$/.test(key)) {
+          return key.toLowerCase();
+        }
+        return mapSpecialKey(key);
+      }).join('+');
+    }
+  };
+
   const handleAddKeyboardAction = () => {
     let actionType: ActionType;
     let value: string | number = '';
@@ -201,36 +271,9 @@ const ActionSidebar: React.FC<ActionSidebarProps> = ({ onActionAdd, onClose, isV
       }
       actionType = 'keypress';
       
-      // Construire la combinaison de touches
+      // Utiliser la nouvelle fonction pour construire la combinaison
       const keysArray = keyboardConfig.modifiers;
-      let combinationString = '';
-      
-      // Séparer les modificateurs des autres touches
-      const modifiers = keysArray.filter(key => ['Ctrl', 'Alt', 'Shift', 'Win'].includes(key));
-      const otherKeys = keysArray.filter(key => !['Ctrl', 'Alt', 'Shift', 'Win'].includes(key));
-      
-      if (keysArray.length === 1) {
-        // Une seule touche - mapper la touche spéciale
-        const key = keysArray[0];
-        combinationString = mapSpecialKey(key);
-      } else {
-        // Combinaison de touches
-        if (modifiers.length > 0 && otherKeys.length > 0) {
-          // Format: Ctrl+A, Alt+F4, etc.
-          let modifierPrefix = '';
-          if (modifiers.includes('Ctrl')) modifierPrefix += '^';
-          if (modifiers.includes('Alt')) modifierPrefix += '!';
-          if (modifiers.includes('Shift')) modifierPrefix += '+';
-          if (modifiers.includes('Win')) modifierPrefix += '#';
-          
-          // Prendre la première touche non-modificateur et la mapper
-          const mainKey = otherKeys[0];
-          combinationString = modifierPrefix + mapSpecialKey(mainKey);
-        } else {
-          // Pas de modificateurs, juste des touches multiples
-          combinationString = keysArray.map(key => mapSpecialKey(key)).join('+');
-        }
-      }
+      const combinationString = buildKeyCombination(keysArray);
       
       value = combinationString;
       description = `Combinaison: ${keysArray.join(' + ')}`;
@@ -311,13 +354,55 @@ const ActionSidebar: React.FC<ActionSidebarProps> = ({ onActionAdd, onClose, isV
     }
   };
 
-  const handleOpenKeyboardMenu = (type: 'text' | 'virtual') => {
+  const handleOpenKeyboardMenu = async (type: 'text' | 'virtual') => {
     setKeyboardMenuType(type);
     setShowKeyboardMenu(true);
+    
+    // Désactiver les raccourcis clavier globaux quand le clavier virtuel est ouvert
+    if (type === 'virtual') {
+      try {
+        await ipcRenderer.invoke('disable-keyboard-shortcuts');
+        // Ajouter un intercepteur d'événements clavier au niveau du document
+        document.addEventListener('keydown', handleVirtualKeyboardKeyDown, true);
+      } catch (error) {
+        console.error('Erreur lors de la désactivation des raccourcis:', error);
+      }
+    }
   };
 
-  const handleCloseKeyboardMenu = () => {
+  const handleCloseKeyboardMenu = async () => {
     setShowKeyboardMenu(false);
+    
+    // Réactiver les raccourcis clavier globaux quand le clavier virtuel est fermé
+    if (keyboardMenuType === 'virtual') {
+      try {
+        await ipcRenderer.invoke('enable-keyboard-shortcuts');
+        // Supprimer l'intercepteur d'événements clavier
+        document.removeEventListener('keydown', handleVirtualKeyboardKeyDown, true);
+      } catch (error) {
+        console.error('Erreur lors de la réactivation des raccourcis:', error);
+      }
+    }
+  };
+
+  // Intercepteur d'événements clavier pour le clavier virtuel
+  const handleVirtualKeyboardKeyDown = (event: KeyboardEvent) => {
+    // Bloquer les raccourcis qui interfèrent avec le clavier virtuel
+    const isF12 = event.key === 'F12';
+    const isCtrlShiftI = event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 'i';
+    const isCtrlShiftJ = event.ctrlKey && event.shiftKey && event.key.toLowerCase() === 'j';
+    
+    // Ne bloquer que les raccourcis qui interfèrent vraiment
+    if (isF12 || isCtrlShiftI || isCtrlShiftJ) {
+      console.log(`🚫 Raccourci intégré bloqué au niveau renderer: ${event.key}`);
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      return false;
+    }
+    
+    // Pour Ctrl+C, Ctrl+X, Ctrl+V, on les laisse passer car ils sont utilisés dans le clavier virtuel
+    // Le menu est déjà désactivé, donc ils ne déclencheront pas les actions de menu
   };
 
   useEffect(() => {
@@ -340,8 +425,23 @@ const ActionSidebar: React.FC<ActionSidebarProps> = ({ onActionAdd, onClose, isV
       resetMouseConfig();
       resetKeyboardConfig();
       resetSystemConfig();
+      
+      // Annuler la capture de position si elle est en cours
+      if (isCapturingPosition) {
+        handleCancelCapture();
+      }
+      
+      // Réactiver les raccourcis clavier si le clavier virtuel était ouvert
+      if (showKeyboardMenu && keyboardMenuType === 'virtual') {
+        ipcRenderer.invoke('enable-keyboard-shortcuts').catch((error: any) => {
+          console.error('Erreur lors de la réactivation des raccourcis:', error);
+        });
+        // Supprimer l'intercepteur d'événements clavier
+        document.removeEventListener('keydown', handleVirtualKeyboardKeyDown, true);
+      }
+      setShowKeyboardMenu(false);
     }
-  }, [isVisible]);
+  }, [isVisible, showKeyboardMenu, keyboardMenuType, isCapturingPosition]);
 
   if (!isVisible) return null;
 
@@ -506,18 +606,34 @@ const ActionSidebar: React.FC<ActionSidebarProps> = ({ onActionAdd, onClose, isV
                           </p>
                         )}
                         
-                        <button 
-                          className="capture-btn"
-                          onClick={async () => {
-                            const result = await handlePositionCapture();
-                            if (result) {
-                              setMouseConfig(prev => ({ ...prev, position: result }));
-                            }
-                          }}
-                          disabled={isCapturingPosition}
-                        >
-                          {isCapturingPosition ? 'Capture...' : '📸 Capturer'}
-                        </button>
+                        <div className="capture-controls">
+                          <button 
+                            className="capture-btn"
+                            onClick={async () => {
+                              const result = await handlePositionCapture();
+                              if (result) {
+                                setMouseConfig(prev => ({ ...prev, position: result }));
+                              }
+                            }}
+                            disabled={isCapturingPosition}
+                          >
+                            {isCapturingPosition ? '🎯 Cliquez n\'importe où...' : '📸 Capturer position'}
+                          </button>
+                          {isCapturingPosition && (
+                            <button 
+                              className="cancel-capture-btn"
+                              onClick={handleCancelCapture}
+                              title="Annuler la capture"
+                            >
+                              ✕ Annuler
+                            </button>
+                          )}
+                        </div>
+                        {isCapturingPosition && (
+                          <p className="capture-instruction">
+                            🎯 <strong>Mode capture activé</strong> - Cliquez n'importe où sur votre écran pour capturer la position
+                          </p>
+                        )}
                       </div>
                     </div>
 
@@ -624,19 +740,35 @@ const ActionSidebar: React.FC<ActionSidebarProps> = ({ onActionAdd, onClose, isV
                           <p>Aucune position définie</p>
                         )}
                         
-                        <button 
-                          className="capture-btn"
-                          onClick={() => {
-                            handlePositionCapture().then(result => {
-                              if (result) {
-                                setSystemConfig(prev => ({ ...prev, position: result }));
-                              }
-                            });
-                          }}
-                          disabled={isCapturingPosition}
-                        >
-                          {isCapturingPosition ? 'Capture en cours...' : '📸 Capturer la position'}
-                        </button>
+                        <div className="capture-controls">
+                          <button 
+                            className="capture-btn"
+                            onClick={() => {
+                              handlePositionCapture().then(result => {
+                                if (result) {
+                                  setSystemConfig(prev => ({ ...prev, position: result }));
+                                }
+                              });
+                            }}
+                            disabled={isCapturingPosition}
+                          >
+                            {isCapturingPosition ? '🎯 Cliquez n\'importe où...' : '📸 Capturer la position'}
+                          </button>
+                          {isCapturingPosition && (
+                            <button 
+                              className="cancel-capture-btn"
+                              onClick={handleCancelCapture}
+                              title="Annuler la capture"
+                            >
+                              ✕ Annuler
+                            </button>
+                          )}
+                        </div>
+                        {isCapturingPosition && (
+                          <p className="capture-instruction">
+                            🎯 <strong>Mode capture activé</strong> - Cliquez n'importe où sur votre écran pour capturer la position
+                          </p>
+                        )}
                       </div>
                     </div>
                   )}

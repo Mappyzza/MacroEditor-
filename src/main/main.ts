@@ -6,6 +6,8 @@ import { globalMouseHook, MouseEvent } from './globalMouseHook';
 
 class MacroEditorApp {
   private mainWindow: BrowserWindow | null = null;
+  private keyboardShortcutsEnabled: boolean = true;
+  private virtualKeyboardActive: boolean = false;
 
   constructor() {
     this.setupApp();
@@ -62,11 +64,42 @@ class MacroEditorApp {
       this.mainWindow = null;
     });
 
-    // Initialiser GlobalCapture avec la référence de la fenêtre
-            // Plus besoin de GlobalCapture
+    // Intercepteur d'événements clavier pour bloquer les raccourcis intégrés
+    this.setupKeyboardInterceptor();
+  }
+
+  private setupKeyboardInterceptor(): void {
+    if (!this.mainWindow) return;
+
+    // Intercepter les événements clavier avant qu'ils ne soient traités par Electron
+    this.mainWindow.webContents.on('before-input-event', (event, input) => {
+      // Si le clavier virtuel est actif, bloquer les raccourcis qui interfèrent
+      if (this.virtualKeyboardActive) {
+        // Bloquer F12 (outils de développement)
+        const isF12 = input.key === 'F12';
+        
+        // Bloquer les raccourcis de développement
+        const isCtrlShiftI = input.control && input.shift && input.key.toLowerCase() === 'i';
+        const isCtrlShiftJ = input.control && input.shift && input.key.toLowerCase() === 'j';
+        
+        // Ne bloquer que les raccourcis qui interfèrent vraiment
+        if (isF12 || isCtrlShiftI || isCtrlShiftJ) {
+          console.log(`🚫 Raccourci intégré bloqué: ${input.key} (clavier virtuel actif)`);
+          event.preventDefault();
+          return;
+        }
+        
+        // Pour Ctrl+C, Ctrl+X, Ctrl+V, on les laisse passer car ils sont utilisés dans le clavier virtuel
+        // Le menu est déjà désactivé, donc ils ne déclencheront pas les actions de menu
+      }
+    });
   }
 
   private setupMenu(): void {
+    this.updateMenu();
+  }
+
+  private updateMenu(): void {
     const template = [
       {
         label: 'Fichier',
@@ -105,9 +138,30 @@ class MacroEditorApp {
           { label: 'Annuler', accelerator: 'CmdOrCtrl+Z', role: 'undo' },
           { label: 'Rétablir', accelerator: 'CmdOrCtrl+Y', role: 'redo' },
           { type: 'separator' },
-          { label: 'Couper', accelerator: 'CmdOrCtrl+X', role: 'cut' },
-          { label: 'Copier', accelerator: 'CmdOrCtrl+C', role: 'copy' },
-          { label: 'Coller', accelerator: 'CmdOrCtrl+V', role: 'paste' },
+          { 
+            label: 'Couper', 
+            accelerator: this.virtualKeyboardActive ? undefined : 'CmdOrCtrl+X', 
+            role: this.virtualKeyboardActive ? undefined : 'cut',
+            click: this.virtualKeyboardActive ? () => {
+              console.log('🚫 Couper bloqué (clavier virtuel actif)');
+            } : undefined
+          },
+          { 
+            label: 'Copier', 
+            accelerator: this.virtualKeyboardActive ? undefined : 'CmdOrCtrl+C', 
+            role: this.virtualKeyboardActive ? undefined : 'copy',
+            click: this.virtualKeyboardActive ? () => {
+              console.log('🚫 Copier bloqué (clavier virtuel actif)');
+            } : undefined
+          },
+          { 
+            label: 'Coller', 
+            accelerator: this.virtualKeyboardActive ? undefined : 'CmdOrCtrl+V', 
+            role: this.virtualKeyboardActive ? undefined : 'paste',
+            click: this.virtualKeyboardActive ? () => {
+              console.log('🚫 Coller bloqué (clavier virtuel actif)');
+            } : undefined
+          },
         ],
       },
       {
@@ -135,7 +189,12 @@ class MacroEditorApp {
         label: 'Affichage',
         submenu: [
           { label: 'Recharger', accelerator: 'CmdOrCtrl+R', role: 'reload' },
-          { label: 'Basculer les outils de développement', accelerator: 'F12', role: 'toggleDevTools' },
+          { 
+            label: 'Basculer les outils de développement', 
+            accelerator: this.virtualKeyboardActive ? undefined : 'F12', 
+            role: this.virtualKeyboardActive ? undefined : 'toggleDevTools',
+            click: this.virtualKeyboardActive ? () => {} : undefined
+          },
           { type: 'separator' },
           { label: 'Zoom avant', accelerator: 'CmdOrCtrl+Plus', role: 'zoomIn' },
           { label: 'Zoom arrière', accelerator: 'CmdOrCtrl+-', role: 'zoomOut' },
@@ -188,13 +247,38 @@ class MacroEditorApp {
     // Handler pour la capture de position (utilisé par ActionSidebar)
     ipcMain.handle('start-position-capture', async (event) => {
       try {
-        // Attendre 1 seconde puis capturer la position RÉELLE de la souris
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        const position = await SimpleActions.getRealMousePosition();
-        return position; // Retourner directement les coordonnées
+        console.log('🎯 Démarrage capture position en temps réel...');
+        
+        // Démarrer la capture globale de souris
+        await globalMouseHook.startCapture();
+        
+        // Attendre le prochain clic avec un timeout de 15 secondes
+        const mouseEvent = await globalMouseHook.captureNextClick(15000);
+        
+        // Arrêter la capture
+        await globalMouseHook.stopCapture();
+        
+        console.log(`✅ Position capturée: (${mouseEvent.x}, ${mouseEvent.y})`);
+        return { x: mouseEvent.x, y: mouseEvent.y };
+        
       } catch (error) {
         console.error('Erreur lors de la capture de position:', error);
-        return { x: 0, y: 0 }; // Position par défaut en cas d'erreur
+        
+        // Arrêter la capture en cas d'erreur
+        try {
+          await globalMouseHook.stopCapture();
+        } catch (stopError) {
+          console.error('Erreur lors de l\'arrêt de la capture:', stopError);
+        }
+        
+        // Fallback vers la méthode simple
+        try {
+          const position = await SimpleActions.getRealMousePosition();
+          return position;
+        } catch (fallbackError) {
+          console.error('Erreur fallback capture:', fallbackError);
+          return { x: 0, y: 0 }; // Position par défaut en cas d'erreur
+        }
       }
     });
 
@@ -271,6 +355,35 @@ class MacroEditorApp {
         const position = await SimpleActions.getRealMousePosition();
         return { success: true, position };
       } catch (error) {
+        return { success: false, error: error instanceof Error ? error.message : String(error) };
+      }
+    });
+
+    // Handler pour désactiver les raccourcis clavier (quand le clavier virtuel est ouvert)
+    ipcMain.handle('disable-keyboard-shortcuts', async (event) => {
+      this.virtualKeyboardActive = true;
+      this.updateMenu();
+      console.log('🚫 Raccourcis de menu désactivés (clavier virtuel actif)');
+      console.log('🔍 État virtualKeyboardActive:', this.virtualKeyboardActive);
+      return { success: true };
+    });
+
+    // Handler pour réactiver les raccourcis clavier (quand le clavier virtuel est fermé)
+    ipcMain.handle('enable-keyboard-shortcuts', async (event) => {
+      this.virtualKeyboardActive = false;
+      this.updateMenu();
+      console.log('✅ Raccourcis de menu réactivés (clavier virtuel fermé)');
+      return { success: true };
+    });
+
+    // Handler pour annuler la capture de position
+    ipcMain.handle('cancel-position-capture', async (event) => {
+      try {
+        console.log('🛑 Annulation capture position...');
+        await globalMouseHook.stopCapture();
+        return { success: true };
+      } catch (error) {
+        console.error('Erreur lors de l\'annulation de la capture:', error);
         return { success: false, error: error instanceof Error ? error.message : String(error) };
       }
     });
