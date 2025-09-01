@@ -1,12 +1,15 @@
 import { BrowserWindow, screen } from 'electron';
 
 export interface ActionPayload {
-  type: 'click' | 'keypress' | 'type' | 'wait' | 'move' | 'scroll';
+  type: 'click' | 'keypress' | 'type' | 'wait' | 'move' | 'scroll' | 'integration';
   coordinates?: { x: number; y: number };
   value?: string;
   delay?: number;
   button?: 'left' | 'right';
   clickCount?: number;
+  integrationMacroId?: string;
+  integrationMacroVersion?: string;
+  repeatCount?: number;
 }
 
 export class SystemActions {
@@ -32,6 +35,9 @@ export class SystemActions {
         break;
       case 'scroll':
         await this.executeScroll(payload);
+        break;
+      case 'integration':
+        await this.executeIntegration(payload);
         break;
       default:
         throw new Error(`Type d'action non supporté: ${payload.type}`);
@@ -145,6 +151,58 @@ export class SystemActions {
       console.log(`Défilement ${value} exécuté`);
     } catch (error) {
       throw new Error(`Erreur défilement: ${error}`);
+    }
+  }
+
+  static async executeIntegration(payload: ActionPayload): Promise<void> {
+    const { integrationMacroId, repeatCount = 1 } = payload;
+    
+    if (!integrationMacroId) {
+      throw new Error('ID de macro d\'intégration requis');
+    }
+
+    try {
+      console.log(`🔗 Exécution de l'intégration: ${integrationMacroId} (${repeatCount} fois)`);
+      
+      // Utiliser le handler IPC synchrone pour exécuter l'intégration
+      const { ipcMain } = require('electron');
+      
+      // Simuler un appel IPC depuis le renderer
+      const result = await new Promise((resolve, reject) => {
+        const mainWindow = BrowserWindow.getAllWindows()[0];
+        if (!mainWindow) {
+          reject(new Error('Fenêtre principale introuvable'));
+          return;
+        }
+
+        // Envoyer le message au renderer
+        mainWindow.webContents.send('execute-integration', { 
+          integrationMacroId, 
+          repeatCount 
+        });
+        
+        // Attendre la réponse du renderer
+        const responseHandler = (event: any, result: { success: boolean, error?: string }) => {
+          ipcMain.removeListener('integration-execution-complete', responseHandler);
+          if (result.success) {
+            resolve(result);
+          } else {
+            reject(new Error(result.error || 'Erreur lors de l\'exécution de l\'intégration'));
+          }
+        };
+
+        ipcMain.on('integration-execution-complete', responseHandler);
+
+        // Timeout de sécurité
+        setTimeout(() => {
+          ipcMain.removeListener('integration-execution-complete', responseHandler);
+          reject(new Error('Timeout lors de l\'exécution de l\'intégration'));
+        }, 30000);
+      });
+      
+      console.log(`✅ Intégration ${integrationMacroId} exécutée avec succès`);
+    } catch (error) {
+      throw new Error(`Erreur intégration: ${error}`);
     }
   }
 }

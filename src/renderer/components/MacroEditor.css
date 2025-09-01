@@ -254,6 +254,55 @@
   flex-shrink: 0;
 }
 
+.repeat-control {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background-color: rgba(0, 122, 204, 0.05);
+  border: 1px solid rgba(0, 122, 204, 0.2);
+  border-radius: var(--border-radius-sm);
+  padding: 2px 4px;
+  transition: all 0.2s ease;
+}
+
+.repeat-control:hover {
+  background-color: rgba(0, 122, 204, 0.1);
+  border-color: rgba(0, 122, 204, 0.3);
+}
+
+.repeat-label {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--primary-color);
+  margin: 0;
+  cursor: default;
+  user-select: none;
+}
+
+.repeat-input {
+  width: 40px;
+  height: 20px;
+  border: none;
+  background: transparent;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: center;
+  outline: none;
+  padding: 0;
+  margin: 0;
+}
+
+.repeat-input:focus {
+  background-color: rgba(255, 255, 255, 0.8);
+  border-radius: 2px;
+}
+
+.repeat-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .move-controls {
   display: flex;
   flex-direction: column;
@@ -320,6 +369,32 @@
 }
 
 .btn-add-delay .icon {
+  font-size: var(--font-size-sm);
+}
+
+.btn-simulate {
+  background-color: rgba(40, 167, 69, 0.1);
+  border-color: #28a745;
+  color: #28a745;
+  font-size: var(--font-size-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.btn-simulate:hover:not(:disabled) {
+  background-color: rgba(40, 167, 69, 0.2);
+  border-color: #1e7e34;
+  color: #1e7e34;
+}
+
+.btn-simulate:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-simulate .icon {
   font-size: var(--font-size-sm);
 }
 

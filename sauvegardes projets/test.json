@@ -117,6 +117,16 @@
           "description": "Clic left à (531, 570)"
         },
         {
+          "id": "integration_1756686034282_foij08t8r",
+          "type": "integration",
+          "target": "inte 1",
+          "value": 19,
+          "description": "Intégration: inte 1",
+          "repeatCount": 1,
+          "integrationMacroId": "macro-1756685444717",
+          "integrationMacroVersion": "1.0.0"
+        },
+        {
           "id": "delay_1756683178599_kuysb4axv",
           "type": "wait",
           "delay": 3000,
@@ -208,13 +218,193 @@
         }
       ],
       "createdAt": "2025-08-31T23:16:43.806Z",
-      "modifiedAt": "2025-08-31T23:37:06.957Z",
+      "modifiedAt": "2025-09-01T00:45:39.796Z",
       "version": "1.0.0",
       "type": "main"
+    },
+    {
+      "id": "macro-1756685444717",
+      "name": "inte 1",
+      "description": "",
+      "actions": [
+        {
+          "id": "1756685550653",
+          "type": "click",
+          "target": "left",
+          "value": 1,
+          "coordinates": {
+            "x": 858,
+            "y": 557
+          },
+          "delay": 0,
+          "description": "Clic left à (858, 557)",
+          "repeatCount": 1
+        },
+        {
+          "id": "1756685457322",
+          "type": "keypress",
+          "target": "Up",
+          "value": "{UP}",
+          "delay": 0,
+          "description": "Combinaison: Up",
+          "repeatCount": 1
+        },
+        {
+          "id": "1756685477222",
+          "type": "keypress",
+          "target": "Left",
+          "value": "{LEFT}",
+          "delay": 0,
+          "description": "Combinaison: Left",
+          "repeatCount": 1
+        },
+        {
+          "id": "1756685629142",
+          "type": "keypress",
+          "target": "Down",
+          "value": "{DOWN}",
+          "delay": 0,
+          "description": "Combinaison: Down",
+          "repeatCount": 1
+        },
+        {
+          "id": "1756685640918",
+          "type": "keypress",
+          "target": "Left",
+          "value": "{LEFT}",
+          "delay": 0,
+          "description": "Combinaison: Left",
+          "repeatCount": 1
+        },
+        {
+          "id": "delay_1756685645502_voo75rz1t",
+          "type": "wait",
+          "delay": 1000,
+          "description": "Attendre 1000ms",
+          "repeatCount": 1
+        },
+        {
+          "id": "1756685654636",
+          "type": "keypress",
+          "target": "Up",
+          "value": "{UP}",
+          "delay": 0,
+          "description": "Combinaison: Up",
+          "repeatCount": 1
+        },
+        {
+          "id": "1756685680162",
+          "type": "keypress",
+          "target": "Left",
+          "value": "{LEFT}",
+          "delay": 0,
+          "description": "Combinaison: Left",
+          "repeatCount": 1
+        },
+        {
+          "id": "1756685693304",
+          "type": "keypress",
+          "target": "Down",
+          "value": "{DOWN}",
+          "delay": 0,
+          "description": "Combinaison: Down",
+          "repeatCount": 1
+        },
+        {
+          "id": "delay_1756685738232_2bpisy93h",
+          "type": "wait",
+          "target": "up",
+          "value": 1000,
+          "delay": 1000,
+          "description": "Attendre 1000ms",
+          "repeatCount": 1
+        },
+        {
+          "id": "1756685702157",
+          "type": "keypress",
+          "target": "Left",
+          "value": "{LEFT}",
+          "delay": 0,
+          "description": "Combinaison: Left",
+          "repeatCount": 1
+        },
+        {
+          "id": "1756685854430",
+          "type": "keypress",
+          "target": "Up",
+          "value": "{UP}",
+          "delay": 0,
+          "description": "Combinaison: Up",
+          "repeatCount": 1
+        },
+        {
+          "id": "1756685861853",
+          "type": "keypress",
+          "target": "Right",
+          "value": "{RIGHT}",
+          "delay": 0,
+          "description": "Combinaison: Right",
+          "repeatCount": 1
+        },
+        {
+          "id": "1756685869930",
+          "type": "keypress",
+          "target": "Up",
+          "value": "{UP}",
+          "delay": 0,
+          "description": "Combinaison: Up",
+          "repeatCount": 1
+        },
+        {
+          "id": "delay_1756685878491_472utki3n",
+          "type": "wait",
+          "delay": 1000,
+          "description": "Attendre 1000ms",
+          "repeatCount": 1
+        },
+        {
+          "id": "1756685887823",
+          "type": "keypress",
+          "target": "Left",
+          "value": "{LEFT}",
+          "delay": 0,
+          "description": "Combinaison: Left",
+          "repeatCount": 1
+        },
+        {
+          "id": "1756685893669",
+          "type": "keypress",
+          "target": "Down",
+          "value": "{DOWN}",
+          "delay": 0,
+          "description": "Combinaison: Down",
+          "repeatCount": 1
+        },
+        {
+          "id": "1756685978650",
+          "type": "keypress",
+          "target": "Right",
+          "value": "{RIGHT}",
+          "delay": 0,
+          "description": "Combinaison: Right",
+          "repeatCount": 1
+        },
+        {
+          "id": "delay_1756686009618_9352ngx0h",
+          "type": "wait",
+          "delay": 5000,
+          "description": "Attendre 5000ms",
+          "repeatCount": 1
+        }
+      ],
+      "createdAt": "2025-09-01T00:10:44.717Z",
+      "modifiedAt": "2025-09-01T00:20:11.289Z",
+      "version": "1.0.0",
+      "type": "branche"
     }
   ],
   "createdAt": "2025-08-31T23:16:00.650Z",
-  "modifiedAt": "2025-08-31T23:37:06.957Z",
+  "modifiedAt": "2025-09-01T00:45:39.796Z",
   "filePath": "C:\\Users\\ticek\\Documents\\MacroEditor\\sauvegardes projets\\test.json",
   "fileName": "test.json"
 }

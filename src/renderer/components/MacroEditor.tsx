@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Macro, MacroAction } from '../../types/macro';
+import { Macro, MacroAction, MacroProject } from '../../types/macro';
 import DelayModal from './DelayModal';
 import './MacroEditor.css';
 
@@ -12,6 +12,7 @@ interface MacroEditorProps {
   onMacroSave?: (macro: Macro) => void;
   onOpenActionLibrary?: () => void;
   onEditAction?: (action: MacroAction) => void;
+  currentProject: MacroProject | null;
 }
 
 const MacroEditor: React.FC<MacroEditorProps> = ({
@@ -23,6 +24,7 @@ const MacroEditor: React.FC<MacroEditorProps> = ({
   onMacroSave,
   onOpenActionLibrary,
   onEditAction,
+  currentProject,
 }) => {
   const [editingAction, setEditingAction] = useState<string | null>(null);
   const [isDelayModalOpen, setIsDelayModalOpen] = useState<boolean>(false);
@@ -78,6 +80,7 @@ const MacroEditor: React.FC<MacroEditorProps> = ({
       type: 'wait',
       delay: delay,
       description: `Attendre ${delay}ms`,
+      repeatCount: 1,
     };
 
     const updatedActions = [...macro.actions, newAction];
@@ -89,6 +92,72 @@ const MacroEditor: React.FC<MacroEditorProps> = ({
     });
   };
 
+  const handleSimulateAction = async (action: MacroAction) => {
+    console.log('🎬 Simulation de l\'action:', action);
+    
+    try {
+      // Gestion spéciale pour les intégrations
+      if (action.type === 'integration') {
+        if (!currentProject || !action.integrationMacroId) {
+          throw new Error('Impossible de simuler l\'intégration : informations manquantes');
+        }
+
+        const integratedMacro = currentProject.macros.find(m => m.id === action.integrationMacroId);
+        if (!integratedMacro) {
+          throw new Error('Macro intégrée introuvable');
+        }
+
+        console.log('🔗 Simulation de l\'intégration:', integratedMacro.name);
+        
+        // Exécuter la macro intégrée
+        const { ipcRenderer } = window.require('electron');
+        const result = await ipcRenderer.invoke('execute-macro', integratedMacro);
+        
+        if (!result) {
+          throw new Error('Échec de l\'exécution de la macro intégrée');
+        }
+
+        console.log('✅ Intégration simulée avec succès');
+        alert(`✅ Intégration simulée avec succès : ${integratedMacro.name}`);
+        return;
+      }
+
+      // Pour les autres types d'actions
+      const actionPayload = {
+        type: action.type,
+        coordinates: action.coordinates,
+        value: action.value,
+        delay: action.delay,
+        button: (action as any).button || 'left',
+        clickCount: action.type === 'click' ? (action.value as number) || 1 : 1,
+        integrationMacroId: action.integrationMacroId,
+        integrationMacroVersion: action.integrationMacroVersion,
+        repeatCount: action.repeatCount || 1,
+      };
+
+      // Exécuter l'action réelle via IPC
+      const { ipcRenderer } = window.require('electron');
+      const result = await ipcRenderer.invoke('execute-system-action', actionPayload);
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Erreur inconnue lors de la simulation');
+      }
+
+      console.log('✅ Action simulée avec succès');
+      
+      // Afficher une notification de succès
+      const actionDescription = getActionDescription(action);
+      alert(`✅ Action simulée avec succès : ${actionDescription}`);
+      
+    } catch (error) {
+      console.error('❌ Erreur lors de la simulation:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      alert(`❌ Erreur lors de la simulation : ${errorMessage}`);
+    }
+  };
+
+
+
   const getActionIcon = (type: string) => {
     switch (type) {
       case 'click': return '👆';
@@ -97,29 +166,56 @@ const MacroEditor: React.FC<MacroEditorProps> = ({
       case 'wait': return '⏱️';
       case 'move': return '🖱️';
       case 'scroll': return '📜';
+      case 'integration': return '🔗';
       default: return '⚙️';
     }
   };
 
   const getActionDescription = (action: MacroAction) => {
+    let baseDescription = '';
+    
     switch (action.type) {
       case 'click':
         const clickCount = action.value as number || 1;
         const clickType = clickCount === 1 ? 'Clic' : clickCount === 2 ? 'Double-clic' : clickCount === 3 ? 'Triple-clic' : `${clickCount}-clic`;
-        return `${clickType} ${action.coordinates ? `en (${action.coordinates.x}, ${action.coordinates.y})` : ''}`;
+        baseDescription = `${clickType} ${action.coordinates ? `en (${action.coordinates.x}, ${action.coordinates.y})` : ''}`;
+        break;
       case 'keypress':
-        return `Appuyer sur ${action.value}`;
+        baseDescription = `Appuyer sur ${action.value}`;
+        break;
       case 'type':
-        return `Saisir "${action.value}"`;
+        baseDescription = `Saisir "${action.value}"`;
+        break;
       case 'wait':
-        return `Attendre ${action.delay}ms`;
+        baseDescription = `Attendre ${action.delay}ms`;
+        break;
       case 'move':
-        return `Déplacer vers (${action.coordinates?.x}, ${action.coordinates?.y})`;
+        baseDescription = `Déplacer vers (${action.coordinates?.x}, ${action.coordinates?.y})`;
+        break;
       case 'scroll':
-        return `Faire défiler ${action.value}`;
+        baseDescription = `Faire défiler ${action.value}`;
+        break;
+      case 'integration':
+        const integratedMacro = currentProject?.macros.find(m => m.id === action.integrationMacroId);
+        if (integratedMacro) {
+          baseDescription = `Intégration: ${integratedMacro.name} (${integratedMacro.actions.length} actions)`;
+          if (integratedMacro.version !== action.integrationMacroVersion) {
+            baseDescription += ` [Mise à jour disponible: v${integratedMacro.version}]`;
+          }
+        } else {
+          baseDescription = `Intégration: ${action.target} (Macro introuvable)`;
+        }
+        break;
       default:
-        return action.description || 'Action personnalisée';
+        baseDescription = action.description || 'Action personnalisée';
     }
+    
+    // Ajouter le nombre de répétitions si différent de 1
+    if (action.repeatCount && action.repeatCount > 1) {
+      baseDescription += ` (×${action.repeatCount})`;
+    }
+    
+    return baseDescription;
   };
 
   return (
@@ -258,6 +354,35 @@ const MacroEditor: React.FC<MacroEditorProps> = ({
                     ✏️
                   </button>
                   
+                  <button
+                    className="btn btn-sm btn-simulate"
+                    onClick={() => handleSimulateAction(action)}
+                    disabled={isExecuting || isRecording}
+                    title="Simuler cette action"
+                  >
+                    ▶️
+                  </button>
+                  
+                  <div className="repeat-control">
+                    <label className="repeat-label" title="Nombre de répétitions">
+                      ×
+                    </label>
+                    <input
+                      type="number"
+                      className="repeat-input"
+                      value={action.repeatCount || 1}
+                      onChange={(e) => {
+                        const repeatCount = Math.max(1, parseInt(e.target.value) || 1);
+                        const updatedAction = { ...action, repeatCount };
+                        handleActionUpdate(action.id, updatedAction);
+                      }}
+                      min="1"
+                      max="999"
+                      disabled={isExecuting || isRecording}
+                      title="Nombre de fois que cette action sera répétée"
+                    />
+                  </div>
+                  
                   <div className="move-controls">
                     <button
                       className="btn btn-sm"
@@ -297,6 +422,8 @@ const MacroEditor: React.FC<MacroEditorProps> = ({
         onClose={() => setIsDelayModalOpen(false)}
         onConfirm={handleAddDelay}
       />
+
+
     </div>
   );
 };

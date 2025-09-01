@@ -1,11 +1,14 @@
 export interface MacroAction {
   id: string;
-  type: 'click' | 'keypress' | 'wait' | 'type' | 'move' | 'scroll';
+  type: 'click' | 'keypress' | 'wait' | 'type' | 'move' | 'scroll' | 'integration';
   target?: string;
   value?: string | number;
   coordinates?: { x: number; y: number };
   delay?: number;
   description?: string;
+  repeatCount?: number;
+  integrationMacroId?: string; // ID de la macro de type branche intégrée
+  integrationMacroVersion?: string; // Version de la macro intégrée
 }
 
 export interface Macro {

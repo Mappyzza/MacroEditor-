@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MacroAction, ActionType } from '../../types/macro';
+import { MacroAction, ActionType, MacroProject } from '../../types/macro';
 import './ActionSidebar.css';
 
 const { ipcRenderer } = window.require('electron');
@@ -11,6 +11,7 @@ interface ActionSidebarProps {
   isVisible: boolean;
   initialActionType?: string;
   editingAction?: MacroAction | null;
+  currentProject?: MacroProject | null;
 }
 
 interface MouseClickConfig {
@@ -34,7 +35,7 @@ interface SystemConfig {
   amount?: number;
 }
 
-const ActionSidebar: React.FC<ActionSidebarProps> = ({ onActionAdd, onActionUpdate, onClose, isVisible, initialActionType, editingAction }) => {
+const ActionSidebar: React.FC<ActionSidebarProps> = ({ onActionAdd, onActionUpdate, onClose, isVisible, initialActionType, editingAction, currentProject }) => {
   const [selectedAction, setSelectedAction] = useState<string | null>(null);
   const [mouseConfig, setMouseConfig] = useState<MouseClickConfig>({
     clickType: 'simple',
@@ -113,7 +114,8 @@ const ActionSidebar: React.FC<ActionSidebarProps> = ({ onActionAdd, onActionUpda
       value: mouseConfig.clickType === 'double' ? 2 : mouseConfig.clickType === 'triple' ? 3 : 1,
       coordinates: mouseConfig.position || { x: 0, y: 0 },
       delay: 0,
-      description: description + (mouseConfig.position ? ` à (${mouseConfig.position.x}, ${mouseConfig.position.y})` : '')
+      description: description + (mouseConfig.position ? ` à (${mouseConfig.position.x}, ${mouseConfig.position.y})` : ''),
+      repeatCount: editingAction?.repeatCount || 1
     };
 
     if (editingAction && onActionUpdate) {
@@ -291,7 +293,8 @@ const ActionSidebar: React.FC<ActionSidebarProps> = ({ onActionAdd, onActionUpda
       target: keyboardConfig.modifiers.join('+'),
       value: value,
       delay: 0,
-      description: description
+      description: description,
+      repeatCount: editingAction?.repeatCount || 1
     };
 
     if (editingAction && onActionUpdate) {
@@ -343,7 +346,8 @@ const ActionSidebar: React.FC<ActionSidebarProps> = ({ onActionAdd, onActionUpda
       value: value,
       coordinates: coordinates,
       delay: systemConfig.actionType === 'wait' ? (systemConfig.delay || 1000) : 0,
-      description: description
+      description: description,
+      repeatCount: editingAction?.repeatCount || 1
     };
 
     if (editingAction && onActionUpdate) {
@@ -568,13 +572,13 @@ const ActionSidebar: React.FC<ActionSidebarProps> = ({ onActionAdd, onActionUpda
             </button>
 
             <button 
-              className="compact-action-btn system-action"
-              onClick={() => setSelectedAction('system')}
-              title="Pauses et temporisation"
+              className="compact-action-btn integration-action"
+              onClick={() => setSelectedAction('integration')}
+              title="Intégrer des macros branche"
             >
-              <div className="compact-icon">⏱️</div>
-              <div className="compact-title">Délai</div>
-              <div className="compact-subtitle">Pauses et temporisation</div>
+              <div className="compact-icon">🔗</div>
+              <div className="compact-title">Intégrations</div>
+              <div className="compact-subtitle">Intégrer des macros branche</div>
             </button>
 
             <button 
@@ -622,6 +626,7 @@ const ActionSidebar: React.FC<ActionSidebarProps> = ({ onActionAdd, onActionUpda
                 }
                 {selectedAction === 'keyboard' && 'Actions de clavier'}
                 {selectedAction === 'system' && 'Actions système'}
+                {selectedAction === 'integration' && 'Intégrations de macros'}
                 {selectedAction === 'advanced' && 'Actions avancées'}
               </h4>
             </div>
@@ -908,6 +913,68 @@ const ActionSidebar: React.FC<ActionSidebarProps> = ({ onActionAdd, onActionUpda
                     >
                       {editingAction ? '✓ Modifier cette action' : '+ Ajouter cette action'}
                     </button>
+                  </div>
+                </div>
+              )}
+
+              {selectedAction === 'integration' && (
+                <div className="integration-config">
+                  <div className="config-section">
+                    <h5>Intégrations de macros</h5>
+                    <p>
+                      Sélectionnez une macro de type <strong>branche</strong> à intégrer dans votre macro principale.
+                      L'intégration sera automatiquement mise à jour avec la version actuelle de la macro.
+                    </p>
+                    
+                    {currentProject && currentProject.macros.filter(m => m.type === 'branche' && m.actions.length > 0).length > 0 ? (
+                      <div className="integration-list">
+                        {currentProject.macros
+                          .filter(macro => macro.type === 'branche' && macro.actions.length > 0)
+                          .map((macro) => (
+                            <div
+                              key={macro.id}
+                              className="integration-item"
+                              onClick={() => {
+                                const newAction: MacroAction = {
+                                  id: editingAction?.id || `integration_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                                  type: 'integration',
+                                  target: macro.name,
+                                  value: macro.actions.length,
+                                  description: `Intégration: ${macro.name}`,
+                                  repeatCount: editingAction?.repeatCount || 1,
+                                  integrationMacroId: macro.id,
+                                  integrationMacroVersion: macro.version,
+                                };
+
+                                if (editingAction && onActionUpdate) {
+                                  onActionUpdate(editingAction.id, newAction);
+                                } else {
+                                  onActionAdd(newAction);
+                                }
+                                setSelectedAction(null);
+                              }}
+                            >
+                              <div className="integration-item-header">
+                                <span className="integration-icon">🌿</span>
+                                <h6>{macro.name}</h6>
+                              </div>
+                              {macro.description && (
+                                <p className="integration-description">{macro.description}</p>
+                              )}
+                              <div className="integration-stats">
+                                <span>{macro.actions.length} action{macro.actions.length !== 1 ? 's' : ''}</span>
+                                <span>Version {macro.version}</span>
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    ) : (
+                      <div className="no-integrations">
+                        <span className="no-integrations-icon">🌿</span>
+                        <h6>Aucune macro branche disponible</h6>
+                        <p>Créez d'abord des macros de type "branche" pour pouvoir les intégrer.</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

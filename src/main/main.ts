@@ -2,6 +2,7 @@ import { app, BrowserWindow, Menu, dialog, ipcMain, shell } from 'electron';
 import * as path from 'path';
 import * as fs from 'fs';
 import { SimpleActions, ActionPayload } from './simpleActions';
+import { SystemActions } from './systemActions';
 import { globalMouseHook, MouseEvent } from './globalMouseHook';
 
 class MacroEditorApp {
@@ -252,10 +253,50 @@ class MacroEditorApp {
     // Nouveau handler pour exécuter une action système
     ipcMain.handle('execute-system-action', async (event, actionPayload: ActionPayload) => {
       try {
-        await SimpleActions.executeAction(actionPayload);
+        await SystemActions.executeAction(actionPayload);
         return { success: true };
       } catch (error) {
         console.error('Erreur lors de l\'exécution de l\'action système:', error);
+        return { success: false, error: error instanceof Error ? error.message : String(error) };
+      }
+    });
+
+    // Handler spécial pour exécuter une intégration de manière synchrone
+    ipcMain.handle('execute-integration-sync', async (event, data: { integrationMacroId: string, repeatCount: number }) => {
+      try {
+        console.log('🔗 Exécution synchrone d\'intégration:', data);
+        
+        // Demander au renderer d'exécuter la macro intégrée
+        const mainWindow = BrowserWindow.getAllWindows()[0];
+        if (!mainWindow) {
+          throw new Error('Fenêtre principale introuvable');
+        }
+
+        // Envoyer le message au renderer
+        mainWindow.webContents.send('execute-integration', data);
+        
+        // Attendre que l'exécution soit terminée
+        return new Promise((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            reject(new Error('Timeout lors de l\'exécution de l\'intégration'));
+          }, 30000); // 30 secondes de timeout
+
+          const responseHandler = (event: any, result: { success: boolean, error?: string }) => {
+            clearTimeout(timeout);
+            ipcMain.removeListener('integration-execution-complete', responseHandler);
+            
+            if (result.success) {
+              resolve({ success: true });
+            } else {
+              reject(new Error(result.error || 'Erreur lors de l\'exécution de l\'intégration'));
+            }
+          };
+
+          ipcMain.on('integration-execution-complete', responseHandler);
+        });
+        
+      } catch (error) {
+        console.error('Erreur lors de l\'exécution de l\'intégration:', error);
         return { success: false, error: error instanceof Error ? error.message : String(error) };
       }
     });
@@ -576,6 +617,9 @@ class MacroEditorApp {
             delay: action.delay,
             button: (action as any).button || 'left',
             clickCount: action.type === 'click' ? (action.value as number) || 1 : 1,
+            integrationMacroId: action.integrationMacroId,
+            integrationMacroVersion: action.integrationMacroVersion,
+            repeatCount: action.repeatCount || 1,
           };
           
           console.log(`🔍 Action payload:`, actionPayload);

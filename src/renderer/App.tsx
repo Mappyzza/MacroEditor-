@@ -77,6 +77,49 @@ const App: React.FC = () => {
       alert(`Clic simulé en (${data.x}, ${data.y})`);
     };
 
+    // Écouter les demandes d'exécution d'intégration
+    const handleExecuteIntegration = async (event: any, data: { integrationMacroId: string, repeatCount: number }) => {
+      console.log('🔗 Exécution d\'intégration demandée:', data);
+      
+      try {
+        if (!currentProject) {
+          throw new Error('Aucun projet chargé pour exécuter l\'intégration');
+        }
+
+        const integratedMacro = currentProject.macros.find(m => m.id === data.integrationMacroId);
+        if (!integratedMacro) {
+          throw new Error(`Macro d'intégration introuvable: ${data.integrationMacroId}`);
+        }
+
+        console.log('🎯 Exécution de la macro intégrée:', integratedMacro.name);
+        
+        // Exécuter la macro intégrée le nombre de fois spécifié
+        for (let i = 0; i < data.repeatCount; i++) {
+          console.log(`🔄 Exécution ${i + 1}/${data.repeatCount} de la macro intégrée`);
+          
+          // Utiliser execute-macro qui maintenant gère correctement les intégrations
+          const result = await ipcRenderer.invoke('execute-macro', integratedMacro);
+          if (!result) {
+            throw new Error('Échec de l\'exécution de la macro intégrée');
+          }
+        }
+        console.log('✅ Intégration exécutée avec succès');
+        
+        // Envoyer une réponse de succès au main process
+        ipcRenderer.send('integration-execution-complete', { success: true });
+        
+      } catch (error) {
+        console.error('❌ Erreur lors de l\'exécution de l\'intégration:', error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        
+        // Envoyer une réponse d'erreur au main process
+        ipcRenderer.send('integration-execution-complete', { 
+          success: false, 
+          error: errorMessage 
+        });
+      }
+    };
+
     const handleSimulateKeypress = (event: any, data: any) => {
       console.log('Simulation de touche:', data);
       alert(`Touche simulée: ${data.key}`);
@@ -97,12 +140,48 @@ const App: React.FC = () => {
       alert(`Défilement ${data.direction}`);
     };
 
+    const handleSimulateIntegration = async (event: any, data: { integrationMacroId: string, repeatCount: number }) => {
+      console.log('🔗 Simulation d\'intégration demandée:', data);
+      
+      try {
+        if (!currentProject) {
+          throw new Error('Aucun projet chargé pour simuler l\'intégration');
+        }
+
+        const integratedMacro = currentProject.macros.find(m => m.id === data.integrationMacroId);
+        if (!integratedMacro) {
+          throw new Error(`Macro d'intégration introuvable: ${data.integrationMacroId}`);
+        }
+
+        console.log('🎯 Simulation de la macro intégrée:', integratedMacro.name);
+        
+        // Exécuter la macro intégrée le nombre de fois spécifié
+        for (let i = 0; i < data.repeatCount; i++) {
+          console.log(`🔄 Simulation ${i + 1}/${data.repeatCount} de la macro intégrée`);
+          
+          // Utiliser execute-macro qui fonctionne pour la simulation
+          const result = await ipcRenderer.invoke('execute-macro', integratedMacro);
+          if (!result) {
+            throw new Error('Échec de la simulation de la macro intégrée');
+          }
+        }
+        console.log('✅ Intégration simulée avec succès');
+        
+      } catch (error) {
+        console.error('❌ Erreur lors de la simulation de l\'intégration:', error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        alert(`Erreur simulation intégration: ${errorMessage}`);
+      }
+    };
+
     // Ajouter les listeners
     ipcRenderer.on('simulate-click', handleSimulateClick);
     ipcRenderer.on('simulate-keypress', handleSimulateKeypress);
     ipcRenderer.on('simulate-type', handleSimulateType);
     ipcRenderer.on('simulate-move', handleSimulateMove);
     ipcRenderer.on('simulate-scroll', handleSimulateScroll);
+    ipcRenderer.on('execute-integration', handleExecuteIntegration);
+    ipcRenderer.on('simulate-integration', handleSimulateIntegration);
 
     return () => {
       ipcRenderer.removeAllListeners('menu-new-macro');
@@ -117,8 +196,54 @@ const App: React.FC = () => {
       ipcRenderer.removeListener('simulate-type', handleSimulateType);
       ipcRenderer.removeListener('simulate-move', handleSimulateMove);
       ipcRenderer.removeListener('simulate-scroll', handleSimulateScroll);
+      ipcRenderer.removeListener('execute-integration', handleExecuteIntegration);
+      ipcRenderer.removeListener('simulate-integration', handleSimulateIntegration);
     };
   }, []);
+
+  // Nouveau useEffect pour handleGetIntegrationMacro avec currentProject dans les dépendances
+  useEffect(() => {
+    const handleGetIntegrationMacro = (event: any, data: { integrationMacroId: string }) => {
+      console.log('🔍 [DEBUG] handleGetIntegrationMacro appelé avec:', data);
+      
+      try {
+        console.log('🔍 [DEBUG] État currentProject:', currentProject ? 'présent' : 'null');
+        
+        if (!currentProject) {
+          console.error('❌ [DEBUG] Aucun projet chargé');
+          ipcRenderer.send('integration-macro-data', null);
+          return;
+        }
+
+        console.log('🔍 [DEBUG] Macros disponibles:', currentProject.macros.map(m => ({ id: m.id, name: m.name, type: m.type })));
+        
+        const integratedMacro = currentProject.macros.find(m => m.id === data.integrationMacroId);
+        console.log('🔍 [DEBUG] Macro recherchée:', data.integrationMacroId);
+        console.log('🔍 [DEBUG] Macro trouvée:', integratedMacro ? integratedMacro.name : 'null');
+        
+        if (!integratedMacro) {
+          console.error(`❌ [DEBUG] Macro d'intégration introuvable: ${data.integrationMacroId}`);
+          ipcRenderer.send('integration-macro-data', null);
+          return;
+        }
+
+        console.log('✅ [DEBUG] Macro d\'intégration trouvée:', integratedMacro.name);
+        console.log('🔍 [DEBUG] Envoi de la macro au main process');
+        ipcRenderer.send('integration-macro-data', integratedMacro);
+        console.log('✅ [DEBUG] Macro envoyée avec succès');
+        
+      } catch (error) {
+        console.error('❌ [DEBUG] Erreur lors de la récupération de la macro d\'intégration:', error);
+        ipcRenderer.send('integration-macro-data', null);
+      }
+    };
+
+    ipcRenderer.on('get-integration-macro', handleGetIntegrationMacro);
+
+    return () => {
+      ipcRenderer.removeListener('get-integration-macro', handleGetIntegrationMacro);
+    };
+  }, [currentProject]); // currentProject dans les dépendances
 
   // Sauvegarder automatiquement le projet à chaque modification
   useEffect(() => {
@@ -322,6 +447,11 @@ const App: React.FC = () => {
         setSelectedMacro(savedMacro);
         setWorkingMacro(savedMacro); // Synchroniser la copie de travail
         
+        // Mettre à jour automatiquement les intégrations si c'est une macro branche
+        if (savedMacro.type === 'branche') {
+          updateIntegrationsForMacro(savedMacro, updatedProject);
+        }
+        
         // Afficher une notification de succès
         alert(`✅ Macro "${macro.name}" sauvegardée avec succès !`);
         console.log('✅ Macro sauvegardée dans le projet');
@@ -431,6 +561,53 @@ const App: React.FC = () => {
     // Mettre à jour seulement la macro de travail, PAS celle sauvegardée
     setWorkingMacro(updatedMacro);
     console.log('✏️ Macro de travail mise à jour (non sauvegardée)');
+    
+    // Mettre à jour automatiquement toutes les intégrations qui référencent cette macro
+    if (currentProject && updatedMacro.type === 'branche') {
+      updateIntegrationsForMacro(updatedMacro, currentProject);
+    }
+  };
+
+  // Fonction pour mettre à jour automatiquement les intégrations
+  const updateIntegrationsForMacro = (updatedMacro: Macro, project: MacroProject) => {
+    if (updatedMacro.type !== 'branche') return;
+
+    let hasUpdates = false;
+    const updatedProject = {
+      ...project,
+      macros: project.macros.map(macro => {
+        if (macro.type === 'main') {
+          const updatedActions = macro.actions.map(action => {
+            if (action.type === 'integration' && action.integrationMacroId === updatedMacro.id) {
+              // Mettre à jour la version de l'intégration
+              const updatedAction = {
+                ...action,
+                integrationMacroVersion: updatedMacro.version,
+                value: updatedMacro.actions.length,
+                description: `Intégration: ${updatedMacro.name}`,
+              };
+              hasUpdates = true;
+              return updatedAction;
+            }
+            return action;
+          });
+
+          if (hasUpdates) {
+            return {
+              ...macro,
+              actions: updatedActions,
+              modifiedAt: new Date(),
+            };
+          }
+        }
+        return macro;
+      }),
+    };
+
+    if (hasUpdates) {
+      setCurrentProject(updatedProject);
+      console.log('🔄 Intégrations mises à jour automatiquement pour:', updatedMacro.name);
+    }
   };
 
   const handleActionAdd = (action: MacroAction) => {
@@ -568,6 +745,7 @@ const App: React.FC = () => {
                   setShowActionSidebar(true);
                 }}
                 onEditAction={handleEditAction}
+                currentProject={currentProject}
               />
             ) : (
               <EmptyProjectScreen
@@ -595,6 +773,7 @@ const App: React.FC = () => {
         isVisible={showActionSidebar}
         initialActionType={selectedActionType}
         editingAction={editingAction}
+        currentProject={currentProject}
       />
 
       <NewMacroModal

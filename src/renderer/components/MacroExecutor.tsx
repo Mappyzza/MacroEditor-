@@ -32,6 +32,9 @@ const MacroExecutor: React.FC<MacroExecutorProps> = ({ macro, onComplete, onStop
           delay: action.delay,
           button: (action as any).button || 'left',
           clickCount: action.type === 'click' ? (action.value as number) || 1 : 1,
+          integrationMacroId: action.integrationMacroId,
+          integrationMacroVersion: action.integrationMacroVersion,
+          repeatCount: action.repeatCount || 1,
         };
 
         // Exécuter l'action réelle via IPC
@@ -96,6 +99,8 @@ const MacroExecutor: React.FC<MacroExecutorProps> = ({ macro, onComplete, onStop
         return `Déplacer vers (${action.coordinates?.x}, ${action.coordinates?.y})`;
       case 'scroll':
         return `Faire défiler ${action.value}`;
+      case 'integration':
+        return `Intégration: ${action.target} (${action.value} actions)`;
       default:
         return action.description || 'Action personnalisée';
     }

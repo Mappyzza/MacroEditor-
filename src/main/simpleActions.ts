@@ -7,12 +7,15 @@ import * as os from 'os';
 const execAsync = promisify(exec);
 
 export interface ActionPayload {
-  type: 'click' | 'keypress' | 'type' | 'wait' | 'move' | 'scroll';
+  type: 'click' | 'keypress' | 'type' | 'wait' | 'move' | 'scroll' | 'integration';
   coordinates?: { x: number; y: number };
   value?: string;
   delay?: number;
   button?: 'left' | 'right';
   clickCount?: number;
+  integrationMacroId?: string;
+  integrationMacroVersion?: string;
+  repeatCount?: number;
 }
 
 export class SimpleActions {
@@ -35,6 +38,9 @@ export class SimpleActions {
         break;
       case 'move':
         await this.executeMove(payload);
+        break;
+      case 'integration':
+        await this.executeIntegration(payload);
         break;
       default:
         console.log(`Action ${payload.type} simulée`);
@@ -614,6 +620,133 @@ Write-Output "$($point.X),$($point.Y)"
     } catch (error) {
       console.error('❌ Erreur méthode finale:', error);
       return { x: 0, y: 0 };
+    }
+  }
+
+  static async executeIntegration(payload: ActionPayload): Promise<void> {
+    const { integrationMacroId, repeatCount = 1 } = payload;
+    
+    console.log(`🔍 [DEBUG] executeIntegration appelé avec:`, { integrationMacroId, repeatCount });
+    
+    if (!integrationMacroId) {
+      console.error(`❌ [DEBUG] integrationMacroId manquant`);
+      throw new Error('ID de macro d\'intégration requis');
+    }
+
+    try {
+      console.log(`🔗 [DEBUG] Début exécution intégration: ${integrationMacroId} (${repeatCount} fois)`);
+      
+      // Utiliser le système de simulation qui fonctionne déjà
+      const { BrowserWindow } = require('electron');
+      console.log(`🔍 [DEBUG] BrowserWindow importé`);
+      
+      const mainWindow = BrowserWindow.getAllWindows()[0];
+      console.log(`🔍 [DEBUG] Fenêtres trouvées:`, BrowserWindow.getAllWindows().length);
+      
+      if (!mainWindow) {
+        console.error(`❌ [DEBUG] Aucune fenêtre principale trouvée`);
+        throw new Error('Fenêtre principale introuvable');
+      }
+
+      console.log(`🔍 [DEBUG] Fenêtre principale trouvée, envoi message get-integration-macro`);
+      
+      // Envoyer un message au renderer pour exécuter la simulation de l'intégration
+      // On va utiliser execute-macro directement depuis le main process
+      const { ipcMain } = require('electron');
+      
+      // Simuler un appel IPC pour exécuter la macro intégrée
+      const result = await new Promise((resolve, reject) => {
+        console.log(`🔍 [DEBUG] Création Promise pour récupération macro`);
+        
+        // Envoyer le message au renderer pour récupérer la macro intégrée
+        mainWindow.webContents.send('get-integration-macro', { 
+          integrationMacroId 
+        });
+        console.log(`🔍 [DEBUG] Message get-integration-macro envoyé`);
+        
+        // Attendre la réponse avec la macro
+        const responseHandler = (event: any, macroData: any) => {
+          console.log(`🔍 [DEBUG] Réponse reçue:`, { macroData: macroData ? 'présent' : 'null' });
+          ipcMain.removeListener('integration-macro-data', responseHandler);
+          if (macroData) {
+            console.log(`✅ [DEBUG] Macro trouvée:`, macroData.name);
+            resolve(macroData);
+          } else {
+            console.error(`❌ [DEBUG] Macro non trouvée`);
+            reject(new Error('Macro d\'intégration introuvable'));
+          }
+        };
+
+        ipcMain.on('integration-macro-data', responseHandler);
+        console.log(`🔍 [DEBUG] Listener integration-macro-data ajouté`);
+
+        // Timeout de sécurité
+        setTimeout(() => {
+          console.error(`❌ [DEBUG] Timeout atteint (5s)`);
+          ipcMain.removeListener('integration-macro-data', responseHandler);
+          reject(new Error('Timeout lors de la récupération de la macro d\'intégration'));
+        }, 5000);
+      });
+      
+      console.log(`🔍 [DEBUG] Macro récupérée, début exécution ${repeatCount} fois`);
+      
+      // Exécuter la macro intégrée le nombre de fois spécifié
+      for (let i = 0; i < repeatCount; i++) {
+        console.log(`🔄 [DEBUG] Exécution ${i + 1}/${repeatCount} de la macro intégrée`);
+        await this.executeMacro(result);
+        console.log(`✅ [DEBUG] Exécution ${i + 1}/${repeatCount} terminée`);
+      }
+      
+      console.log(`✅ [DEBUG] Intégration ${integrationMacroId} simulée avec succès`);
+    } catch (error) {
+      console.error(`❌ [DEBUG] Erreur dans executeIntegration:`, error);
+      throw new Error(`Erreur intégration: ${error}`);
+    }
+  }
+
+  static async executeMacro(macroData: any): Promise<void> {
+    try {
+      console.log('🎯 [DEBUG] EXÉCUTION MACRO - Macro:', macroData.name);
+      
+      if (!macroData.actions || !Array.isArray(macroData.actions)) {
+        console.error('❌ [DEBUG] Aucune action trouvée dans la macro');
+        return;
+      }
+
+      console.log(`📋 [DEBUG] Exécution de ${macroData.actions.length} actions...`);
+
+      // Exécuter chaque action de la macro
+      for (let i = 0; i < macroData.actions.length; i++) {
+        const action = macroData.actions[i];
+        console.log(`🔄 [DEBUG] Action ${i + 1}/${macroData.actions.length}: ${action.type}`);
+
+        try {
+          // Convertir l'action MacroAction en ActionPayload
+          const actionPayload = {
+            type: action.type,
+            coordinates: action.coordinates,
+            value: action.value,
+            delay: action.delay,
+            button: (action as any).button || 'left',
+            clickCount: action.type === 'click' ? (action.value as number) || 1 : 1,
+            integrationMacroId: action.integrationMacroId,
+            integrationMacroVersion: action.integrationMacroVersion,
+            repeatCount: action.repeatCount || 1,
+          };
+          
+          console.log(`🔍 [DEBUG] Action payload:`, actionPayload);
+          await this.executeAction(actionPayload);
+          console.log(`✅ [DEBUG] Action ${i + 1} terminée avec succès`);
+        } catch (actionError) {
+          console.error(`❌ [DEBUG] Erreur action ${i + 1}:`, actionError);
+          throw actionError;
+        }
+      }
+
+      console.log('🎉 [DEBUG] Macro exécutée avec succès !');
+    } catch (error) {
+      console.error('❌ [DEBUG] Erreur lors de l\'exécution de la macro:', error);
+      throw error;
     }
   }
 }

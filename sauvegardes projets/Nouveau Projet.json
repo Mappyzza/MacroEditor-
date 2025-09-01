@@ -1,0 +1,78 @@
+{
+  "id": "project-1756687551408",
+  "name": "Nouveau Projet",
+  "description": "Projet de macro vide",
+  "macros": [
+    {
+      "id": "macro-1756687564537",
+      "name": "test",
+      "description": "",
+      "actions": [
+        {
+          "id": "1756687574899",
+          "type": "click",
+          "target": "left",
+          "value": 1,
+          "coordinates": {
+            "x": 816,
+            "y": 847
+          },
+          "delay": 0,
+          "description": "Clic left à (816, 847)",
+          "repeatCount": 1
+        },
+        {
+          "id": "integration_1756688233405_3r5rd6blt",
+          "type": "integration",
+          "target": "integration",
+          "value": 2,
+          "description": "Intégration: integration",
+          "repeatCount": 1,
+          "integrationMacroId": "macro-1756687605365",
+          "integrationMacroVersion": "1.0.0"
+        }
+      ],
+      "createdAt": "2025-09-01T00:46:04.537Z",
+      "modifiedAt": "2025-09-01T00:57:15.425Z",
+      "version": "1.0.0",
+      "type": "main"
+    },
+    {
+      "id": "macro-1756687605365",
+      "name": "integration",
+      "description": "",
+      "actions": [
+        {
+          "id": "1756687616242",
+          "type": "click",
+          "target": "left",
+          "value": 1,
+          "coordinates": {
+            "x": 459,
+            "y": 352
+          },
+          "delay": 0,
+          "description": "Clic left à (459, 352)",
+          "repeatCount": 1
+        },
+        {
+          "id": "1756687629987",
+          "type": "type",
+          "target": "",
+          "value": "test",
+          "delay": 0,
+          "description": "Saisie: \"test\"",
+          "repeatCount": 1
+        }
+      ],
+      "createdAt": "2025-09-01T00:46:45.365Z",
+      "modifiedAt": "2025-09-01T00:47:16.621Z",
+      "version": "1.0.0",
+      "type": "branche"
+    }
+  ],
+  "createdAt": "2025-09-01T00:45:51.408Z",
+  "modifiedAt": "2025-09-01T00:57:15.425Z",
+  "filePath": "C:\\Users\\ticek\\Documents\\MacroEditor\\sauvegardes projets\\Nouveau Projet.json",
+  "fileName": "Nouveau Projet.json"
+}
